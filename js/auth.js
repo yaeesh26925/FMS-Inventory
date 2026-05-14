@@ -210,13 +210,19 @@ function closeOTPModals() {
 
 function requestOTP() {
     const rc = document.getElementById('otp-rc-number').value.trim();
-    if (!rc) return alert("Please enter your RC Number");
+    if (!rc) {
+        if (window.appEngine) window.appEngine.showToast("Please enter your RC Number", 'warning');
+        else alert("Please enter your RC Number");
+        return;
+    }
     
     const users = window.stateManager.get('users');
     const user = users.find(u => String(u.rcNumber).trim() === rc);
     
     if (!user) {
-        return alert("RC Number not found in system.");
+        if (window.appEngine) window.appEngine.showToast("RC Number not found in system.", 'danger');
+        else alert("RC Number not found in system.");
+        return;
     }
     
     currentResetRC = rc;
@@ -235,13 +241,18 @@ function verifyOTP() {
     if (code === currentOTP) {
         showOTPModal(3);
     } else {
-        alert("Invalid OTP code.");
+        if (window.appEngine) window.appEngine.showToast("Invalid OTP code.", 'danger');
+        else alert("Invalid OTP code.");
     }
 }
 
 function submitNewPassword() {
     const newPass = document.getElementById('otp-new-password').value;
-    if (!newPass || newPass.length < 4) return alert("Password too short");
+    if (!newPass || newPass.length < 4) {
+        if (window.appEngine) window.appEngine.showToast("Password too short", 'warning');
+        else alert("Password too short");
+        return;
+    }
     
     window.appEngine.showToast("Updating password...", 'info');
     window.stateManager.resetPassword(currentResetRC, newPass, (success, msg) => {
@@ -249,7 +260,8 @@ function submitNewPassword() {
             window.appEngine.showToast("Password updated successfully!", 'success');
             closeOTPModals();
         } else {
-            alert("Failed to update password: " + (msg || "Unknown error"));
+            if (window.appEngine) window.appEngine.showToast("Failed to update password: " + (msg || "Unknown error"), 'danger');
+            else alert("Failed to update password: " + (msg || "Unknown error"));
         }
     });
 }
@@ -270,7 +282,8 @@ function registerUser() {
     const name = document.getElementById('reg-name').value.trim();
     
     if (!phone || !password || !rcNumber || !name) {
-        alert("Please fill all fields.");
+        if (window.appEngine) window.appEngine.showToast("Please fill all fields.", 'warning');
+        else alert("Please fill all fields.");
         return;
     }
     
@@ -285,7 +298,8 @@ function registerUser() {
 
     // Check if user already exists
     if (users.find(u => u.phone === formattedPhone || String(u.rcNumber).trim() === rcNumber)) {
-        alert("User with this phone or RC Number already exists.");
+        if (window.appEngine) window.appEngine.showToast("User with this phone or RC Number already exists.", 'danger');
+        else alert("User with this phone or RC Number already exists.");
         return;
     }
 
@@ -310,7 +324,12 @@ function registerUser() {
 
     window.stateManager.logAudit('USER_REGISTERED', 'New user registered', { name: name, phone: formattedPhone });
     
-    alert("Registration successful! You can now log in.");
+    if (window.appEngine) {
+        window.appEngine.showToast("Registration successful! You can now log in.", 'success');
+    } else {
+        alert("Registration successful! You can now log in.");
+    }
+    
     hideRegistrationModal();
     document.getElementById('login-phone').value = formattedPhone;
 }
