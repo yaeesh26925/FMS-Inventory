@@ -49,7 +49,7 @@ window.userManagementView = {
                 <td>
                     <div style="display:flex; gap:6px; flex-wrap:wrap;">
                         ${role !== 'Owner' ? `<button class="btn btn-secondary btn-sm" onclick="userManagementView.showEditModal('${u.phone}')" ${guard} style="padding:4px 10px; font-size:12px;">✏️ Edit</button>` : ''}
-                        ${!isCurrentUser && role !== 'Owner' ? `<button class="btn btn-sm" onclick="userManagementView.deleteUser('${u.phone}')" style="padding:4px 10px; font-size:12px; background:var(--danger); color:#fff; border:none; border-radius:var(--radius-md); cursor:pointer;">🗑 Remove</button>` : ''}
+                        ${!isCurrentUser && role !== 'Owner' ? `<button class="btn btn-sm btn-danger" onclick="userManagementView.deleteUser('${u.phone}')" style="padding:4px 10px; font-size:12px;">🗑 Remove</button>` : ''}
                     </div>
                 </td>
             </tr>`;

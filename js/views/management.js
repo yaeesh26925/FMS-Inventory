@@ -12,15 +12,15 @@ window.managementView = {
         };
 
         container.innerHTML = `
-            <div class="header-row">
+            <div class="header-row" style="margin-bottom: 24px;">
                 <h1>System Management</h1>
-                <div style="display:flex; gap:8px;">
+                <div style="display:flex; gap:12px; flex-wrap:wrap;">
                     ${canAdd ? `<button class="btn btn-primary" onclick="managementView.showAddModal()" style="width:auto">➕ Add New Inventory Item</button>` : ''}
                 </div>
             </div>
             
-            <div style="display:flex; gap:12px; margin-bottom:24px; flex-wrap:wrap;">
-                ${hasPerm('permRestock') ? `<button class="btn btn-secondary" onclick="window.appEngine.navigate('correction')">📦 Restock Inventory</button>` : ''}
+            <div style="display:flex; gap:12px; margin-bottom:32px; flex-wrap:wrap;">
+                ${hasPerm('permRestock') ? `<button class="btn btn-primary" onclick="window.appEngine.navigate('correction')">📦 Restock Inventory</button>` : ''}
                 ${hasPerm('permProcurement') ? `<button class="btn btn-primary" onclick="window.appEngine.navigate('procurement')">🏢 Open Procurement</button>` : ''}
                 ${hasPerm('permDetailedInfo') ? `<button class="btn btn-primary" onclick="window.appEngine.navigate('financials')">📋 Detailed Inventory Info</button>` : ''}
                 ${hasPerm('permAnalytics') ? `<button class="btn btn-primary" onclick="window.appEngine.navigate('dashboard')">📊 Analytics</button>` : ''}

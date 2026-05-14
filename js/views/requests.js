@@ -109,8 +109,8 @@ window.requestsView = {
             if (req.status === 'PENDING' && canEdit) {
                 actions = `
                     <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                        <button class="btn btn-sm" style="background:var(--success); color:#fff; font-size:12px;" onclick="requestsView.openActionModal('approve','${req.id}','${(itemName).replace(/'/g, "\\'")}',${ req.qty})">✅ Approve</button>
-                        <button class="btn btn-sm" style="background:var(--danger); color:#fff; font-size:12px;" onclick="requestsView.openActionModal('reject','${req.id}','${(itemName).replace(/'/g, "\\'")}',${ req.qty})">❌ Reject</button>
+                        <button class="btn btn-sm btn-success" style="font-size:11px;" onclick="requestsView.openActionModal('approve','${req.id}','${(itemName).replace(/'/g, "\\'")}',${ req.qty})">✅ Approve</button>
+                        <button class="btn btn-sm btn-danger" style="font-size:11px;" onclick="requestsView.openActionModal('reject','${req.id}','${(itemName).replace(/'/g, "\\'")}',${ req.qty})">❌ Reject</button>
                     </div>
                 `;
             }

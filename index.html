@@ -51,7 +51,6 @@
     <div class="mobile-header" id="mobile-header" style="display:none; align-items:center; justify-content:space-between; padding:16px 24px; background:var(--sidebar-bg); backdrop-filter:var(--glass-blur); border-bottom:1px solid var(--glass-border); position:fixed; top:0; left:0; width:100%; z-index:1000; box-shadow:var(--shadow-soft);">
         <div class="brand-sm" style="font-family:'Outfit',sans-serif; font-weight:900; font-size:20px; color:var(--primary); letter-spacing:-0.05em; background:linear-gradient(135deg, var(--primary), var(--secondary)); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;">FUEL MGT</div>
         <div style="display:flex; align-items:center; gap:16px;">
-            <button class="btn btn-primary btn-sm" id="pwa-install-btn-mobile" style="padding:6px 12px; font-size:11px; border-radius:var(--radius-pill);">📥 Install</button>
             <button onclick="appEngine.toggleTheme()" style="background:var(--surface-hover); border:1px solid var(--glass-border); border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:var(--text-main); font-size:16px; cursor:pointer;" title="Toggle Theme">🌓</button>
             <button onclick="appEngine.toggleMobileMenu()" style="background:none; border:none; color:var(--text-main); font-size:28px; cursor:pointer; display:flex; align-items:center;">☰</button>
         </div>
@@ -123,7 +122,7 @@
                 </div>
                 <div class="user-block">
                     <div id="current-user-name" class="user-name">Staff Mode</div>
-                    <button id="auth-btn" class="btn btn-primary btn-sm mt-3" onclick="window.appEngine.showLogin()">Admin Login</button>
+                    <button id="auth-btn" class="btn btn-primary btn-sm" onclick="window.appEngine.showLogin()">Admin Login</button>
                 </div>
             </nav>
 
@@ -135,7 +134,6 @@
                         <h1 id="topbar-title">Overview</h1>
                     </div>
                     <div class="topbar-right">
-                        <button class="btn btn-primary btn-sm" id="pwa-install-btn" style="margin-right: 12px;">📥 Install App</button>
                         <div class="topbar-user" onclick="appEngine.toggleTheme()">
                             <div class="topbar-avatar" id="topbar-avatar">?</div>
                             <span class="topbar-username" id="topbar-username">Guest</span>

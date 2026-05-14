@@ -12,11 +12,7 @@ class AppEngine {
 
         this.updateChartDefaults();
 
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW failed:', err));
-        }
         this.initDOM();
-        this.initPWA();
     }
 
     updateChartDefaults() {
@@ -46,39 +42,7 @@ class AppEngine {
         }
     }
 
-    initPWA() {
-        let deferredPrompt = null;
-        const installBtns = [
-            document.getElementById('pwa-install-btn'),
-            document.getElementById('pwa-install-btn-mobile')
-        ];
-        
-        window.addEventListener('beforeinstallprompt', (e) => {
-            // Prevent the mini-infobar from appearing on mobile
-            e.preventDefault();
-            // Stash the event so it can be triggered later.
-            deferredPrompt = e;
-        });
 
-        installBtns.forEach(installBtn => {
-            if (installBtn) {
-                installBtn.addEventListener('click', async () => {
-                    if (deferredPrompt) {
-                        // Show the prompt
-                        deferredPrompt.prompt();
-                        // Wait for the user to respond to the prompt
-                        const { outcome } = await deferredPrompt.userChoice;
-                        console.log(`User response to the install prompt: ${outcome}`);
-                        // We've used the prompt, and can't use it again, throw it away
-                        deferredPrompt = null;
-                        installBtns.forEach(btn => { if(btn) btn.style.display = 'none'; });
-                    } else {
-                        alert("To install this app on your device, tap the Share icon (iOS) or Menu icon (Android/Chrome) and select 'Add to Home Screen'. Direct install is currently unavailable in this environment.");
-                    }
-                });
-            }
-        });
-    }
 
     toggleMobileMenu() {
         const sidebar = document.getElementById('sidebar');
@@ -122,7 +86,7 @@ class AppEngine {
                 const btn = document.getElementById('auth-btn');
                 if(btn) {
                     btn.innerText = 'Logout';
-                    btn.className = 'btn btn-danger btn-sm mt-3';
+                    btn.className = 'btn btn-logout btn-sm';
                     btn.onclick = () => window.logout();
                 }
                 

@@ -216,8 +216,22 @@ h1, h2, h3, .brand {
     padding: 24px;
     border-top: 1px solid var(--glass-border);
     background: hsla(0, 0%, 100%, 0.02);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 }
-.user-name { font-weight: 700; font-size: 16px; color: var(--text-main); }
+.user-name { font-weight: 700; font-size: 15px; color: var(--text-main); margin-bottom: 4px; }
+.btn-logout {
+    background: var(--danger);
+    color: #fff !important;
+    font-size: 12px;
+    padding: 8px 16px;
+    box-shadow: 0 4px 12px hsla(0, 85%, 60%, 0.3);
+}
+.btn-logout:hover {
+    background: hsl(0, 85%, 50%);
+    box-shadow: 0 6px 16px hsla(0, 85%, 60%, 0.4);
+}
 
 /* ── WORKSPACE ── */
 .workspace { 
@@ -240,8 +254,9 @@ h1, h2, h3, .brand {
 .topbar {
     display: flex; justify-content: space-between; align-items: center;
     margin-bottom: 40px;
-    position: sticky; top: 0; z-index: 50;
+    position: sticky; top: 0; z-index: 500;
     padding: 10px 0;
+    background: var(--bg); /* Ensure it covers content behind */
 }
 .topbar h1 { 
     font-size: 36px; 
@@ -359,6 +374,35 @@ a:hover {
     background: var(--surface-hover);
     color: var(--text-main);
     border: 1px solid var(--glass-border);
+}
+
+.btn-success {
+    background: linear-gradient(135deg, var(--success), #059669);
+    box-shadow: 0 8px 20px -5px hsla(150, 80%, 50%, 0.4);
+    color: #fff !important;
+}
+.btn-success:hover {
+    box-shadow: 0 12px 24px -8px hsla(150, 80%, 50%, 0.6);
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, var(--danger), #dc2626);
+    box-shadow: 0 8px 20px -5px hsla(0, 85%, 60%, 0.4);
+    color: #fff !important;
+}
+.btn-danger:hover {
+    box-shadow: 0 12px 24px -8px hsla(0, 85%, 60%, 0.6);
+}
+
+.btn-back {
+    background: var(--bg-alt);
+    color: var(--text-muted);
+    border: 1px solid var(--glass-border);
+}
+.btn-back:hover {
+    color: var(--primary);
+    border-color: var(--primary);
+    background: var(--nav-active);
 }
 
 .btn-sm { padding: 8px 16px; font-size: 13px; }
