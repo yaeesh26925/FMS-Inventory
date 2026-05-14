@@ -297,11 +297,24 @@ h1, h2, h3, .brand {
     font-family: inherit;
     transition: var(--transition);
 }
-.input-group input:focus {
+.input-group input:focus, .input-group select:focus {
     outline: none;
     border-color: var(--primary);
     background: hsla(0, 0%, 100%, 0.08);
     box-shadow: var(--shadow-glow);
+}
+
+select option {
+    background-color: var(--bg-alt);
+    color: var(--text-main);
+}
+
+a {
+    color: var(--primary);
+    transition: var(--transition);
+}
+a:hover {
+    filter: brightness(1.2);
 }
 
 /* ── BUTTONS ── */

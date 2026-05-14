@@ -6,6 +6,7 @@ window.managementView = {
         const canAdd = user.permAddItem === 'Edit';
         
         const hasPerm = (key) => {
+            if (user.userType === 'Admin' || user.userType === 'Owner') return true;
             const p = user[key];
             return p && p !== 'Non';
         };
