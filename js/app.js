@@ -97,36 +97,64 @@ class AppEngine {
     }
 
     boot() {
+        console.log("AppEngine boot started...");
         const storedUser = localStorage.getItem('currentUser');
+        console.log("Stored user found:", !!storedUser);
+        
         if (storedUser) {
-            const tempUser = JSON.parse(storedUser);
-            // Refresh currentUser from stateManager to get latest permissions
-            const allUsers = window.stateManager.get('users');
-            const refreshedUser = allUsers.find(u => String(u.phone).trim() === String(tempUser.phone).trim());
-            
-            this.currentUser = refreshedUser || tempUser;
-            localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
+            try {
+                const tempUser = JSON.parse(storedUser);
+                console.log("Parsing stored user...");
+                
+                // Refresh currentUser from stateManager to get latest permissions
+                const allUsers = window.stateManager.get('users');
+                console.log("Total users in system cache:", allUsers.length);
+                
+                const refreshedUser = allUsers.find(u => String(u.phone || '').trim() === String(tempUser.phone || '').trim());
+                console.log("Refreshed user found in cache:", !!refreshedUser);
+                
+                this.currentUser = refreshedUser || tempUser;
+                localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
 
-            document.getElementById('current-user-name').innerText = this.currentUser.name || this.currentUser.phone;
-            const btn = document.getElementById('auth-btn');
-            if(btn) {
-                btn.innerText = 'Logout';
-                btn.className = 'btn btn-danger btn-sm mt-3';
-                btn.onclick = () => window.logout();
-            }
-            
-            this.updateTopbar();
-            this.setupNavigation();
-            document.getElementById('view-login').classList.remove('active');
-            document.getElementById('view-app').classList.add('active');
-            
-            const currentModule = document.querySelector('.module.active')?.id.replace('module-', '');
-            if(!currentModule || currentModule === 'login') {
-                this.navigate('inventory');
-            } else {
-                this.navigate(currentModule);
+                const nameEl = document.getElementById('current-user-name');
+                if (nameEl) nameEl.innerText = this.currentUser.name || this.currentUser.phone;
+                
+                const btn = document.getElementById('auth-btn');
+                if(btn) {
+                    btn.innerText = 'Logout';
+                    btn.className = 'btn btn-danger btn-sm mt-3';
+                    btn.onclick = () => window.logout();
+                }
+                
+                console.log("Updating UI components...");
+                this.updateTopbar();
+                this.setupNavigation();
+                
+                console.log("Switching views...");
+                const loginView = document.getElementById('view-login');
+                const appView = document.getElementById('view-app');
+                
+                if (loginView) loginView.classList.remove('active');
+                if (appView) appView.classList.add('active');
+                
+                const activeModule = document.querySelector('.module.active');
+                const currentModule = activeModule ? activeModule.id.replace('module-', '') : null;
+                console.log("Current module detected:", currentModule);
+                
+                if(!currentModule || currentModule === 'login') {
+                    console.log("Navigating to default: inventory");
+                    this.navigate('inventory');
+                } else {
+                    console.log("Resuming module:", currentModule);
+                    this.navigate(currentModule);
+                }
+                console.log("Boot sequence complete!");
+            } catch (err) {
+                console.error("CRITICAL ERROR during boot:", err);
+                this.showLogin();
             }
         } else {
+            console.log("No user stored, showing login.");
             this.currentUser = null;
             this.showLogin();
         }
