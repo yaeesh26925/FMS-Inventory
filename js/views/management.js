@@ -3,7 +3,7 @@ window.managementView = {
     render: function() {
         const container = document.getElementById('module-management');
         const user = window.appEngine.currentUser;
-        const canAdd = user.permAddItem === 'Edit';
+        const canAdd = user.userType === 'Admin' || user.userType === 'Owner' || user.permAddItem === 'Edit';
         
         const hasPerm = (key) => {
             if (user.userType === 'Admin' || user.userType === 'Owner') return true;
@@ -15,7 +15,6 @@ window.managementView = {
             <div class="header-row">
                 <h1>System Management</h1>
                 <div style="display:flex; gap:8px;">
-                    <button class="btn btn-secondary" onclick="appEngine.syncWithFirestore()" style="width:auto">🔄 Sync Data</button>
                     ${canAdd ? `<button class="btn btn-primary" onclick="managementView.showAddModal()" style="width:auto">➕ Add New Inventory Item</button>` : ''}
                 </div>
             </div>
