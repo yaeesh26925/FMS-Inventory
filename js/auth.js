@@ -157,10 +157,16 @@ function resetLoginView() {
 }
 
 function loginWithPassword() {
+    console.log("Login attempt started...");
     let phone = document.getElementById('login-phone').value.trim();
     const password = document.getElementById('login-password').value;
-    const users = window.stateManager.get('users');
+    const errorEl = document.getElementById('login-error');
     
+    if (!phone || !password) {
+        errorEl.innerText = 'Please enter both phone and password.';
+        return;
+    }
+
     // Normalize phone number (prepend +960 for local, + for international)
     if (phone && !phone.startsWith('+')) {
         if (phone.length <= 10) {
@@ -170,15 +176,26 @@ function loginWithPassword() {
         }
     }
     
+    console.log("Searching for normalized phone:", phone);
+    const users = window.stateManager.get('users');
+    console.log("Total users in system:", users.length);
+    
     const hashedPass = btoa(password);
-    const user = users.find(u => String(u.phone).trim() === phone && (u.password === hashedPass || String(u.password) === String(password)));
+    const user = users.find(u => {
+        const storedPhone = String(u.phone || '').trim();
+        const phoneMatch = storedPhone === phone || phone.endsWith(storedPhone.replace(/^0+/, '')) || storedPhone.endsWith(phone.replace(/^\+960/, ''));
+        const passMatch = (u.password === hashedPass || String(u.password) === String(password));
+        return phoneMatch && passMatch;
+    });
     
     if (user) {
+        console.log("User found! Logging in...", user.name);
         localStorage.setItem('currentUser', JSON.stringify(user));
         window.stateManager.logAudit('USER_LOGIN', 'User authenticated to system with password', { name: user.name || user.phone });
         window.appEngine.boot();
     } else {
-        document.getElementById('login-error').innerText = 'Invalid phone number or password';
+        console.warn("Login failed: User not found or password mismatch.");
+        errorEl.innerText = 'Invalid phone number or password';
     }
 }
 
