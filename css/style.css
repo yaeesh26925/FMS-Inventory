@@ -405,7 +405,16 @@ tbody tr:hover td { background: var(--surface-hover); color: var(--text-main); }
 }
 
 
-/* ── ANIMATIONS ── */
+/* ── ANIMATIONS & VIEW SWITCHING ── */
+.view-container { 
+    display: none; 
+    width: 100%;
+    min-height: 100vh;
+}
+.view-container.active { 
+    display: block; 
+}
+
 .module { display: none; }
 .module.active { 
     display: block; 
