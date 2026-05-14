@@ -29,46 +29,52 @@ window.managementView = {
                 ${user.userType === 'Owner' ? `<button class="btn btn-primary" onclick="window.appEngine.navigate('inventory-flow')" style="background-color: #8b5cf6; border-color: #8b5cf6; color: white;">🌊 Inventory Flow</button>` : ''}
             </div>
 
-            
-            <!-- Work Purposes Management -->
-            <div class="card" style="margin-top:24px;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-                    <h2>⚙️ Work Purposes</h2>
-                </div>
-                <p style="color:var(--text-muted); font-size:13px; margin-bottom:16px;">Manage the list of work purposes shown in request forms.</p>
-                <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
-                    <input type="text" id="mgt-new-purpose" placeholder="e.g. Corrective Maintenance" style="flex:1; min-width:200px; padding:10px 14px; border-radius:var(--radius-md); border:1px solid var(--glass-border); background:hsla(0,0%,100%,0.05); color:var(--text-main); font-size:14px;">
-                    <button class="btn btn-primary btn-sm" onclick="managementView.addPurpose()" style="white-space:nowrap;">➕ Add Purpose</button>
-                </div>
-                <div id="mgt-purposes-list" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
-            </div>
-
-            <div class="card" style="margin-top: 24px;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                    <h2>Read-Only Audit Log</h2>
-                    <button class="btn btn-secondary btn-sm" onclick="managementView.resetAuditFilters()" style="width:auto">✕ Reset Filters</button>
-                </div>
-                <p style="color:var(--text-muted); margin-bottom:20px; font-size:13px;">ℹ️ Admin usernames and permissions are managed in the <strong>Users</strong> section via Firestore.</p>
-                <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:20px;">
-                    <input type="text" id="audit-filter-operator" placeholder="Filter by Operator..." style="padding:12px; border-radius:var(--radius-md); border:1px solid var(--glass-border); background:hsla(0, 0%, 100%, 0.05); color:var(--text-main); flex:1; min-width:200px;" oninput="managementView.populateAudit()">
-                    <select id="audit-filter-action" style="padding:12px; border-radius:var(--radius-md); border:1px solid var(--glass-border); background:hsla(0, 0%, 100%, 0.05); color:var(--text-main); flex:1; min-width:200px; cursor:pointer;" onchange="managementView.populateAudit()">
-                        <option value="">All Action Categories</option>
-                    </select>
+            <!-- Tabbed Panel -->
+            <div class="card" style="padding:0; overflow:hidden;">
+                <!-- Tab Nav -->
+                <div style="display:flex; border-bottom:1px solid var(--glass-border); background:hsla(0,0%,100%,0.02);">
+                    <button id="mgt-tab-btn-purposes" onclick="managementView.switchTab('purposes')" class="mgt-tab-btn active" style="padding:14px 24px; font-size:13px; font-weight:700; border:none; background:none; color:var(--primary); border-bottom:2px solid var(--primary); cursor:pointer; letter-spacing:0.03em;">⚙️ Work Purposes</button>
+                    <button id="mgt-tab-btn-audit" onclick="managementView.switchTab('audit')" class="mgt-tab-btn" style="padding:14px 24px; font-size:13px; font-weight:700; border:none; background:none; color:var(--text-muted); border-bottom:2px solid transparent; cursor:pointer; letter-spacing:0.03em;">📋 Audit Log</button>
+                    ${user.userType === 'Owner' ? `<button id="mgt-tab-btn-users" onclick="managementView.switchTab('users')" class="mgt-tab-btn" style="padding:14px 24px; font-size:13px; font-weight:700; border:none; background:none; color:var(--text-muted); border-bottom:2px solid transparent; cursor:pointer; letter-spacing:0.03em;">👥 User Management</button>` : ''}
                 </div>
 
-                <div class="table-responsive" style="margin-top: 8px;">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Timestamp</th>
-                                <th>Operator</th>
-                                <th>Action Category</th>
-                                <th>Details</th>
-                            </tr>
-                        </thead>
-                        <tbody id="audit-tbody"></tbody>
-                    </table>
+                <!-- Work Purposes Tab -->
+                <div id="mgt-tab-purposes" style="padding:24px;">
+                    <p style="color:var(--text-muted); font-size:13px; margin-bottom:16px;">Manage the list of work purposes shown in request forms.</p>
+                    <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
+                        <input type="text" id="mgt-new-purpose" placeholder="e.g. Corrective Maintenance" style="flex:1; min-width:200px; padding:10px 14px; border-radius:var(--radius-md); border:1px solid var(--glass-border); background:hsla(0,0%,100%,0.05); color:var(--text-main); font-size:14px;">
+                        <button class="btn btn-primary btn-sm" onclick="managementView.addPurpose()" style="white-space:nowrap;">➕ Add Purpose</button>
+                    </div>
+                    <div id="mgt-purposes-list" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
                 </div>
+
+                <!-- Audit Log Tab -->
+                <div id="mgt-tab-audit" style="padding:24px; display:none;">
+                    <p style="color:var(--text-muted); margin-bottom:20px; font-size:13px;">ℹ️ A read-only record of all system actions.</p>
+                    <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:20px;">
+                        <input type="text" id="audit-filter-operator" placeholder="Filter by Operator..." style="padding:12px; border-radius:var(--radius-md); border:1px solid var(--glass-border); background:hsla(0, 0%, 100%, 0.05); color:var(--text-main); flex:1; min-width:200px;" oninput="managementView.populateAudit()">
+                        <select id="audit-filter-action" style="padding:12px; border-radius:var(--radius-md); border:1px solid var(--glass-border); background:hsla(0, 0%, 100%, 0.05); color:var(--text-main); flex:1; min-width:200px; cursor:pointer;" onchange="managementView.populateAudit()">
+                            <option value="">All Action Categories</option>
+                        </select>
+                        <button class="btn btn-secondary btn-sm" onclick="managementView.resetAuditFilters()" style="width:auto;">✕ Reset</button>
+                    </div>
+                    <div class="table-responsive" style="margin-top: 8px;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>Operator</th>
+                                    <th>Action Category</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody id="audit-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- User Management Tab (Owner only) -->
+                ${user.userType === 'Owner' ? `<div id="mgt-tab-users" style="padding:24px; display:none;"><div id="um-tab-content"></div></div>` : ''}
             </div>
 
             <!-- Add Item Modal -->
@@ -147,6 +153,30 @@ window.managementView = {
         
         this.populateAudit();
         this.populatePurposesList();
+    },
+
+    switchTab: function(tab) {
+        // Update button styles
+        document.querySelectorAll('.mgt-tab-btn').forEach(btn => {
+            btn.style.color = 'var(--text-muted)';
+            btn.style.borderBottom = '2px solid transparent';
+        });
+        const activeBtn = document.getElementById('mgt-tab-btn-' + tab);
+        if (activeBtn) {
+            activeBtn.style.color = 'var(--primary)';
+            activeBtn.style.borderBottom = '2px solid var(--primary)';
+        }
+
+        // Show/hide tab panels
+        ['purposes', 'audit', 'users'].forEach(t => {
+            const el = document.getElementById('mgt-tab-' + t);
+            if (el) el.style.display = (t === tab) ? 'block' : 'none';
+        });
+
+        // Lazy-render User Management tab
+        if (tab === 'users' && window.userManagementView) {
+            window.userManagementView.renderTab();
+        }
     },
 
     populatePurposesList: function() {
