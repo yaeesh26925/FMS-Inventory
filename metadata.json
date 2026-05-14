@@ -1,0 +1,5 @@
+{
+  "name": "Fuel Maintenance Inventory Track",
+  "description": "A high-security inventory management and procurement tracking system with role-based access control, purpose-driven costing, and strict audit trails.",
+  "requestFramePermissions": []
+}

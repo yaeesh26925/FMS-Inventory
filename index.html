@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fuel Maintenance Inventory</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="https://www.macl.aero/img/logo_favicon.png">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <link id="main-css" rel="stylesheet" href="css/style.css">
+    <script>
+        // Force a complete system wipe once to clear out broken caching
+        if (!localStorage.getItem('v6_wipe_done')) {
+            localStorage.clear();
+            localStorage.setItem('v6_wipe_done', 'true');
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                    for(let r of registrations) r.unregister();
+                });
+            }
+            if (window.caches) {
+                caches.keys().then(function(names) {
+                    for (let name of names) caches.delete(name);
+                });
+            }
+            window.location.reload(true);
+        }
+        
+        // Permanent fix for local dev CSS caching issues
+        if (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:') {
+            document.getElementById('main-css').href = 'css/style.css?v=' + new Date().getTime();
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <!-- Firebase JS SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+</head>
+<body>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+
+    <div class="mobile-header" id="mobile-header" style="display:none; align-items:center; justify-content:space-between; padding:16px 24px; background:var(--sidebar-bg); backdrop-filter:var(--glass-blur); border-bottom:1px solid var(--glass-border); position:fixed; top:0; left:0; width:100%; z-index:1000; box-shadow:var(--shadow-soft);">
+        <div class="brand-sm" style="font-family:'Outfit',sans-serif; font-weight:900; font-size:20px; color:var(--primary); letter-spacing:-0.05em; background:linear-gradient(135deg, var(--primary), var(--secondary)); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;">FUEL MGT</div>
+        <div style="display:flex; align-items:center; gap:16px;">
+            <button class="btn btn-primary btn-sm" id="pwa-install-btn-mobile" style="padding:6px 12px; font-size:11px; border-radius:var(--radius-pill);">📥 Install</button>
+            <button onclick="appEngine.toggleTheme()" style="background:var(--surface-hover); border:1px solid var(--glass-border); border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:var(--text-main); font-size:16px; cursor:pointer;" title="Toggle Theme">🌓</button>
+            <button onclick="appEngine.toggleMobileMenu()" style="background:none; border:none; color:var(--text-main); font-size:28px; cursor:pointer; display:flex; align-items:center;">☰</button>
+        </div>
+    </div>
+
+    <div id="sidebar-backdrop" class="sidebar-backdrop" onclick="appEngine.toggleMobileMenu()"></div>
+
+    <!-- Login View -->
+    <div id="view-login" class="view-container active">
+        <div class="auth-wrapper">
+            <div class="auth-card">
+                <h2>Secure Login</h2>
+                
+                <div id="login-step-1">
+                    <div class="input-group">
+                        <label>Phone Number</label>
+                        <input type="text" id="login-phone" placeholder="e.g. +9607777777" onkeydown="if(event.key === 'Enter') sendFirebaseOTP()">
+                        <small style="color:var(--text-muted); font-size:11px;">Include country code (e.g., +960)</small>
+                    </div>
+                    <button class="btn btn-primary" id="btn-send-otp" onclick="sendFirebaseOTP()">Send OTP</button>
+                    
+                    <div style="margin-top:24px; border-top:1px solid var(--glass-border); padding-top:16px;">
+
+                        <p style="font-size:13px; color:var(--text-muted); margin-bottom:12px; text-align:center;">Or login with password</p>
+                        <div class="input-group">
+                            <input type="password" id="login-password" placeholder="Password" onkeydown="if(event.key === 'Enter') loginWithPassword()">
+                        </div>
+                        <button class="btn btn-secondary" style="width:100%" onclick="loginWithPassword()">Log In with Password</button>
+                    </div>
+                </div>
+
+                <div id="recaptcha-container" style="margin-bottom: 16px; min-height: 1px;"></div>
+
+                <div id="login-step-2" style="display:none;">
+
+                    <p style="color:var(--text-muted); font-size:13px; margin-bottom:16px;">Please enter the OTP sent to your phone.</p>
+                    <div class="input-group">
+                        <label>OTP Code</label>
+                        <input type="text" id="login-otp" placeholder="000000" onkeydown="if(event.key === 'Enter') verifyFirebaseOTP()">
+                    </div>
+                    <button class="btn btn-primary" id="btn-verify-otp" onclick="verifyFirebaseOTP()">Verify & Login</button>
+                    <div style="text-align:center; margin-top:16px;">
+                        <a href="#" onclick="resetLoginView()" style="color:var(--text-muted); font-size:13px; text-decoration:none;">&larr; Back to Phone Entry</a>
+                    </div>
+                </div>
+
+                <div id="login-error" class="error-msg" style="margin-top: 12px; color:var(--danger); font-size:13px; font-weight:600;"></div>
+                <div id="login-forgot-password" style="text-align:center; margin-top:32px; display:flex; flex-direction:column; gap:12px; font-size:13px;">
+                    <a href="#" onclick="showOTPModal(1)" style="color:var(--primary); text-decoration:none; font-weight:600;">Forgot Password?</a>
+                    <div style="height:1px; background:var(--glass-border); width:40%; margin:4px auto;"></div>
+                    <p style="color:var(--text-muted)">Don't have an account?</p>
+                    <a href="#" onclick="showRegistrationModal()" style="color:var(--primary); text-decoration:none; font-weight:700; text-transform:uppercase; letter-spacing:0.05em;">Register New Account</a>
+                </div>
+
+            </div>
+        </div>
+
+        </div>
+    </div>
+    </div>
+
+    <!-- Main Dashboard Application -->
+    <div id="view-app" class="view-container">
+        <div class="layout">
+            <!-- Sidebar -->
+            <nav class="sidebar" id="sidebar">
+                <div class="brand">Fuel Maintenance<br>Inventory</div>
+                <div class="nav-links">
+                    <a href="#" class="nav-link active" data-target="inventory" id="nav-inventory">📦 Inventory</a>
+                    <a href="#" class="nav-link" data-target="requests" id="nav-requests">📝 Requests</a>
+                    <a href="#" class="nav-link" data-target="management" id="nav-management">⚙️ Management</a>
+                </div>
+                <div class="user-block">
+                    <div id="current-user-name" class="user-name">Staff Mode</div>
+                    <button id="auth-btn" class="btn btn-primary btn-sm mt-3" onclick="window.appEngine.showLogin()">Admin Login</button>
+                </div>
+            </nav>
+
+            <!-- Main Workspace -->
+            <main class="workspace">
+                <!-- Top Bar -->
+                <div class="topbar" id="main-topbar">
+                    <div class="topbar-left">
+                        <h1 id="topbar-title">Overview</h1>
+                    </div>
+                    <div class="topbar-right">
+                        <button class="btn btn-primary btn-sm" id="pwa-install-btn" style="margin-right: 12px;">📥 Install App</button>
+                        <div class="topbar-user" onclick="appEngine.toggleTheme()">
+                            <div class="topbar-avatar" id="topbar-avatar">?</div>
+                            <span class="topbar-username" id="topbar-username">Guest</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Inner Views handled by app.js routing -->
+                <div id="module-inventory" class="module active"></div>
+                <div id="module-requests" class="module"></div>
+                <div id="module-procurement" class="module"></div>
+                <div id="module-financials" class="module"></div>
+                <div id="module-management" class="module"></div>
+                <div id="module-correction" class="module"></div>
+                <div id="module-dashboard" class="module"></div>
+                <div id="module-tasks" class="module"></div>
+                <div id="module-reports" class="module"></div>
+                <div id="module-inventory-flow" class="module"></div>
+            </main>
+        </div>
+    </div>
+
+
+
+    <!-- Core Scripts -->
+    <script src="js/config.js?v=8"></script>
+    <script src="js/state.js?v=8"></script>
+    <script src="js/auth.js?v=8"></script>
+    <!-- View Scripts -->
+    <script src="js/views/inventory.js?v=8"></script>
+    <script src="js/views/requests.js?v=8"></script>
+    <script src="js/views/procurement.js?v=8"></script>
+    <script src="js/views/financials.js?v=8"></script>
+    <script src="js/views/management.js?v=8"></script>
+    <script src="js/views/correction.js?v=8"></script>
+    <script src="js/views/dashboard.js?v=8"></script>
+    <script src="js/views/tasks.js?v=8"></script>
+    <script src="js/views/reports.js?v=8"></script>
+    <script src="js/views/inventory-flow.js?v=8"></script>
+    <!-- Main Routing -->
+    <!-- Modals -->
+    <div id="registration-modal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2>Register Account</h2>
+                <span class="modal-close" onclick="hideRegistrationModal()">&times;</span>
+            </div>
+            <div class="input-group">
+                <label>Full Name</label>
+                <input type="text" id="reg-name" placeholder="John Doe">
+            </div>
+            <div class="input-group">
+                <label>Phone Number</label>
+                <input type="text" id="reg-phone" placeholder="e.g. +9607777777">
+            </div>
+            <div class="input-group">
+                <label>RC Number</label>
+                <input type="text" id="reg-rc" placeholder="RC001">
+            </div>
+            <div class="input-group">
+                <label>Password</label>
+                <input type="password" id="reg-password" placeholder="******">
+            </div>
+            <button class="btn btn-primary" onclick="registerUser()">Register</button>
+        </div>
+    </div>
+
+    <div id="otp-modal-1" class="modal-overlay">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2>Reset Password</h2>
+                <span class="modal-close" onclick="closeOTPModals()">&times;</span>
+            </div>
+            <p style="color:var(--text-muted); font-size:13px; margin-bottom:16px;">Enter your RC Number to receive a reset code.</p>
+            <div class="input-group">
+                <label>RC Number</label>
+                <input type="text" id="otp-rc-number" placeholder="e.g. RC1234">
+            </div>
+            <button class="btn btn-primary" onclick="requestOTP()">Send OTP</button>
+        </div>
+    </div>
+
+    <div id="otp-modal-2" class="modal-overlay">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2>Enter OTP</h2>
+                <span class="modal-close" onclick="closeOTPModals()">&times;</span>
+            </div>
+            <p style="color:var(--text-muted); font-size:13px; margin-bottom:16px;">Please enter the 4-digit code sent to your phone.</p>
+            <div class="input-group">
+                <label>OTP Code</label>
+                <input type="text" id="otp-code-input" placeholder="0000">
+            </div>
+            <button class="btn btn-primary" onclick="verifyOTP()">Verify Code</button>
+        </div>
+    </div>
+
+    <div id="otp-modal-3" class="modal-overlay">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2>New Password</h2>
+                <span class="modal-close" onclick="closeOTPModals()">&times;</span>
+            </div>
+            <p style="color:var(--text-muted); font-size:13px; margin-bottom:16px;">Enter your new password below.</p>
+            <div class="input-group">
+                <label>New Password</label>
+                <input type="password" id="otp-new-password" placeholder="******">
+            </div>
+            <button class="btn btn-primary" onclick="submitNewPassword()">Update Password</button>
+        </div>
+    </div>
+
+    <script src="js/app.js?v=8"></script>
+</body>
+</html>
