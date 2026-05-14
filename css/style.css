@@ -91,6 +91,14 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 
+/* Fix for topbar scrolling issues */
+.workspace { 
+    flex: 1; 
+    overflow-y: auto;
+    overflow-x: hidden;
+    height: 100vh;
+}
+
 h1, h2, h3, .brand {
     font-family: 'Outfit', sans-serif;
 }
@@ -215,7 +223,9 @@ h1, h2, h3, .brand {
 .workspace { 
     flex: 1; 
     padding: 40px; 
-    overflow-y: auto; 
+    overflow-y: auto;
+    overflow-x: hidden;
+    height: 100vh;
     scroll-behavior: smooth;
     position: relative;
 }
@@ -304,9 +314,15 @@ h1, h2, h3, .brand {
     box-shadow: var(--shadow-glow);
 }
 
-select option {
-    background-color: var(--bg-alt);
+/* ── SELECT DARK MODE FIX ── */
+select, select option {
+    background-color: hsl(var(--bg-hsl));
     color: var(--text-main);
+}
+
+body.light-theme select, body.light-theme select option {
+    background-color: #fff;
+    color: #1a1a2e;
 }
 
 a {

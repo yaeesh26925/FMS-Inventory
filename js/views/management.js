@@ -30,6 +30,19 @@ window.managementView = {
             </div>
 
             
+            <!-- Work Purposes Management -->
+            <div class="card" style="margin-top:24px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                    <h2>⚙️ Work Purposes</h2>
+                </div>
+                <p style="color:var(--text-muted); font-size:13px; margin-bottom:16px;">Manage the list of work purposes shown in request forms.</p>
+                <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
+                    <input type="text" id="mgt-new-purpose" placeholder="e.g. Corrective Maintenance" style="flex:1; min-width:200px; padding:10px 14px; border-radius:var(--radius-md); border:1px solid var(--glass-border); background:hsla(0,0%,100%,0.05); color:var(--text-main); font-size:14px;">
+                    <button class="btn btn-primary btn-sm" onclick="managementView.addPurpose()" style="white-space:nowrap;">➕ Add Purpose</button>
+                </div>
+                <div id="mgt-purposes-list" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+            </div>
+
             <div class="card" style="margin-top: 24px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
                     <h2>Read-Only Audit Log</h2>
@@ -133,6 +146,44 @@ window.managementView = {
         `;
         
         this.populateAudit();
+        this.populatePurposesList();
+    },
+
+    populatePurposesList: function() {
+        const list = document.getElementById('mgt-purposes-list');
+        if (!list) return;
+        const purposes = window.stateManager.get('purposes').filter(p => p !== 'Other (Manual)');
+        if (purposes.length === 0) {
+            list.innerHTML = '<span style="color:var(--text-muted); font-size:13px;">No custom purposes yet. Add one above.</span>';
+            return;
+        }
+        list.innerHTML = purposes.map(p => `
+            <span style="display:inline-flex; align-items:center; gap:6px; background:hsla(0,0%,100%,0.08); border:1px solid var(--glass-border); border-radius:var(--radius-pill); padding:6px 12px; font-size:13px; font-weight:600; color:var(--text-main);">
+                ${p}
+                <button onclick="managementView.removePurpose('${p.replace(/'/g,"\\'")}')" style="background:none; border:none; color:var(--danger); cursor:pointer; font-size:16px; line-height:1; padding:0; margin:0;">×</button>
+            </span>
+        `).join('');
+    },
+
+    addPurpose: function() {
+        const input = document.getElementById('mgt-new-purpose');
+        const val = (input?.value || '').trim();
+        if (!val) { window.appEngine.showToast('Please enter a purpose name.', 'warning'); return; }
+        const purposes = window.stateManager.get('purposes');
+        if (purposes.includes(val)) { window.appEngine.showToast('Purpose already exists.', 'warning'); return; }
+        purposes.push(val);
+        window.stateManager.set('purposes', purposes);
+        if (input) input.value = '';
+        this.populatePurposesList();
+        window.appEngine.showToast(`"${val}" added to purposes.`, 'success');
+    },
+
+    removePurpose: function(purpose) {
+        let purposes = window.stateManager.get('purposes');
+        purposes = purposes.filter(p => p !== purpose);
+        window.stateManager.set('purposes', purposes);
+        this.populatePurposesList();
+        window.appEngine.showToast(`"${purpose}" removed.`, 'warning');
     },
 
     populateAudit: function() {
@@ -181,7 +232,8 @@ window.managementView = {
         const opInput = document.getElementById('mgt-add-operator');
         const opLabel = document.getElementById('mgt-add-operator-label');
         if (window.appEngine && window.appEngine.currentUser) {
-            opInput.value = window.appEngine.currentUser.username;
+            const u = window.appEngine.currentUser;
+            opInput.value = u.name || u.phone || '';
             opInput.readOnly = true;
             opInput.style.opacity = '0.6';
             if (opLabel) opLabel.innerText = 'Logged in as';

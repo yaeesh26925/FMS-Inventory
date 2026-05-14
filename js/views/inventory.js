@@ -272,7 +272,8 @@ window.inventoryView = {
         const actionSelect = document.getElementById('inv-req-action');
         const user = window.appEngine.currentUser;
         const isAdmin = user && (user.userType === 'Admin' || user.userType === 'Owner');
-        const canTake = isAdmin && user.requestPerm === 'Edit';
+        // Admins and Owners can always take immediately
+        const canTake = isAdmin || (user && user.requestPerm === 'Edit');
         
         if (!user || !canTake) {
             actionSelect.innerHTML = '<option value="request">Submit Request (Wait for Approval)</option>';

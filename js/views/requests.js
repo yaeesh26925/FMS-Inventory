@@ -74,7 +74,8 @@ window.requestsView = {
         if (!isAdmin) {
             visibleRequests = requests.filter(r => 
                 (r.userName || r.username) === currentUser.name || 
-                (r.userName || r.username) === currentUser.phone
+                (r.userName || r.username) === currentUser.phone ||
+                r.userPhone === currentUser.phone
             );
         }
 
@@ -102,13 +103,14 @@ window.requestsView = {
 
 
             let actions = '<span style="color:var(--text-muted)">—</span>';
-            const canEdit = isAdmin && currentUser.requestPerm === 'Edit';
+            // Admins and Owners can always approve/reject
+            const canEdit = isAdmin;
 
             if (req.status === 'PENDING' && canEdit) {
                 actions = `
-                    <div style="display:flex; gap:6px;">
-                        <button class="btn btn-sm btn-success" onclick="requestsView.openActionModal('approve','${req.id}','${(itemName).replace(/'/g,"\\'")}',${req.qty})">Approve & Fulfill</button>
-                        <button class="btn btn-sm btn-danger" onclick="requestsView.openActionModal('reject','${req.id}','${(itemName).replace(/'/g,"\\'")}',${req.qty})">Reject</button>
+                    <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                        <button class="btn btn-sm" style="background:var(--success); color:#fff; font-size:12px;" onclick="requestsView.openActionModal('approve','${req.id}','${(itemName).replace(/'/g, "\\'")}',${ req.qty})">✅ Approve</button>
+                        <button class="btn btn-sm" style="background:var(--danger); color:#fff; font-size:12px;" onclick="requestsView.openActionModal('reject','${req.id}','${(itemName).replace(/'/g, "\\'")}',${ req.qty})">❌ Reject</button>
                     </div>
                 `;
             }
