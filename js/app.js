@@ -34,6 +34,10 @@ class AppEngine {
         this.updateChartDefaults();
         this.updateTopbar();
         
+        // Update mobile theme button icon
+        const mobileThemeBtn = document.getElementById('mobile-theme-btn');
+        if (mobileThemeBtn) mobileThemeBtn.textContent = isLight ? '\uD83C\uDF19' : '\u2600\uFE0F';
+        
         // Re-render current module if it has a chart
         const currentModule = document.querySelector('.module.active')?.id.replace('module-', '');
         if (['dashboard', 'procurement'].includes(currentModule)) {
@@ -44,11 +48,8 @@ class AppEngine {
 
 
 
-    toggleMobileMenu() {
-        const sidebar = document.getElementById('sidebar');
-        const backdrop = document.getElementById('sidebar-backdrop');
-        if (sidebar) sidebar.classList.toggle('active');
-        if (backdrop) backdrop.classList.toggle('active');
+    mobileNavigate(moduleName) {
+        this.navigate(moduleName);
     }
 
     initDOM() {
@@ -175,6 +176,10 @@ class AppEngine {
         toggleNav('inventory', true);
         toggleNav('requests', true);
         toggleNav('management', isAdmin);
+
+        // Bottom nav — show management only for admins
+        const bnavMgmt = document.getElementById('bnav-management');
+        if (bnavMgmt) bnavMgmt.style.display = isAdmin ? 'flex' : 'none';
     }
 
     navigate(moduleName) {
@@ -222,9 +227,46 @@ class AppEngine {
         else {
             // Keep Management active if it's a sub-module
             if(['procurement', 'financials', 'correction', 'dashboard', 'tasks', 'reports', 'inventory-flow'].includes(moduleName)) {
-                document.getElementById('nav-management').classList.add('active');
+                const mgmtNav = document.getElementById('nav-management');
+                if (mgmtNav) mgmtNav.classList.add('active');
             }
         }
+
+        // Sync bottom nav active state
+        const bnavMap = {
+            'inventory': 'bnav-inventory',
+            'requests': 'bnav-requests',
+            'management': 'bnav-management',
+            'procurement': 'bnav-management',
+            'financials': 'bnav-management',
+            'correction': 'bnav-management',
+            'dashboard': 'bnav-management',
+            'tasks': 'bnav-management',
+            'reports': 'bnav-management',
+            'inventory-flow': 'bnav-management'
+        };
+        document.querySelectorAll('.bottom-nav-item').forEach(b => b.classList.remove('active'));
+        const bnavId = bnavMap[moduleName];
+        if (bnavId) {
+            const bnavEl = document.getElementById(bnavId);
+            if (bnavEl) bnavEl.classList.add('active');
+        }
+
+        // Update topbar title
+        const titleMap = {
+            'inventory': 'Inventory',
+            'requests': 'Requests',
+            'management': 'Management',
+            'procurement': 'Procurement',
+            'financials': 'Detailed Info',
+            'correction': 'Restock',
+            'dashboard': 'Analytics',
+            'tasks': 'Pending Work',
+            'reports': 'Reports',
+            'inventory-flow': 'Inv. Flow'
+        };
+        const titleEl = document.getElementById('topbar-title');
+        if (titleEl && titleMap[moduleName]) titleEl.textContent = titleMap[moduleName];
         
         // Hide all modules, show selected
         document.querySelectorAll('.module').forEach(m => m.classList.remove('active'));
@@ -234,14 +276,6 @@ class AppEngine {
         const renderObj = window[moduleName + 'View'];
         if(renderObj && typeof renderObj.render === 'function') {
             renderObj.render();
-        }
-
-        // Close mobile menu if open
-        const sidebar = document.getElementById('sidebar');
-        const backdrop = document.getElementById('sidebar-backdrop');
-        if (sidebar && sidebar.classList.contains('active')) {
-            sidebar.classList.remove('active');
-            if (backdrop) backdrop.classList.remove('active');
         }
     }
 

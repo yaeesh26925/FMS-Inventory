@@ -3,10 +3,10 @@ window.managementView = {
     render: function() {
         const container = document.getElementById('module-management');
         const user = window.appEngine.currentUser;
-        const canAdd = user.userType === 'Admin' || user.userType === 'Owner' || user.permAddItem === 'Edit';
+        const canAdd = user.userType === 'Owner' || (user.userType === 'Admin' && user.permRestock === 'Edit') || user.permAddItem === 'Edit';
         
         const hasPerm = (key) => {
-            if (user.userType === 'Admin' || user.userType === 'Owner') return true;
+            if (user.userType === 'Owner') return true;
             const p = user[key];
             return p && p !== 'Non';
         };
@@ -19,7 +19,7 @@ window.managementView = {
                 </div>
             </div>
             
-            <div style="display:flex; gap:12px; margin-bottom:32px; flex-wrap:wrap;">
+            <div class="mgmt-btn-grid" style="display:flex; gap:12px; margin-bottom:32px; flex-wrap:wrap;">
                 ${hasPerm('permRestock') ? `<button class="btn btn-primary" onclick="window.appEngine.navigate('correction')">📦 Restock Inventory</button>` : ''}
                 ${hasPerm('permProcurement') ? `<button class="btn btn-primary" onclick="window.appEngine.navigate('procurement')">🏢 Open Procurement</button>` : ''}
                 ${hasPerm('permDetailedInfo') ? `<button class="btn btn-primary" onclick="window.appEngine.navigate('financials')">📋 Detailed Inventory Info</button>` : ''}
@@ -32,19 +32,23 @@ window.managementView = {
             <!-- Tabbed Panel -->
             <div class="card" style="padding:0; overflow:hidden;">
                 <!-- Tab Nav -->
-                <div style="display:flex; border-bottom:1px solid var(--glass-border); background:hsla(0,0%,100%,0.02);">
+                <div style="overflow-x:auto; -webkit-overflow-scrolling:touch;">
+                <div style="display:flex; border-bottom:1px solid var(--glass-border); background:hsla(0,0%,100%,0.02); min-width:max-content;">
                     <button id="mgt-tab-btn-purposes" onclick="managementView.switchTab('purposes')" class="mgt-tab-btn active" style="padding:14px 24px; font-size:13px; font-weight:700; border:none; background:none; color:var(--primary); border-bottom:2px solid var(--primary); cursor:pointer; letter-spacing:0.03em;">⚙️ Work Purposes</button>
                     <button id="mgt-tab-btn-audit" onclick="managementView.switchTab('audit')" class="mgt-tab-btn" style="padding:14px 24px; font-size:13px; font-weight:700; border:none; background:none; color:var(--text-muted); border-bottom:2px solid transparent; cursor:pointer; letter-spacing:0.03em;">📋 Audit Log</button>
                     ${user.userType === 'Owner' ? `<button id="mgt-tab-btn-users" onclick="managementView.switchTab('users')" class="mgt-tab-btn" style="padding:14px 24px; font-size:13px; font-weight:700; border:none; background:none; color:var(--text-muted); border-bottom:2px solid transparent; cursor:pointer; letter-spacing:0.03em;">👥 User Management</button>` : ''}
+                </div>
                 </div>
 
                 <!-- Work Purposes Tab -->
                 <div id="mgt-tab-purposes" style="padding:24px;">
                     <p style="color:var(--text-muted); font-size:13px; margin-bottom:16px;">Manage the list of work purposes shown in request forms.</p>
+                    ${hasPerm('permWorkPurposes') ? `
                     <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
                         <input type="text" id="mgt-new-purpose" placeholder="e.g. Corrective Maintenance" style="flex:1; min-width:200px; padding:10px 14px; border-radius:var(--radius-md); border:1px solid var(--glass-border); background:hsla(0,0%,100%,0.05); color:var(--text-main); font-size:14px;">
                         <button class="btn btn-primary btn-sm" onclick="managementView.addPurpose()" style="white-space:nowrap;">➕ Add Purpose</button>
                     </div>
+                    ` : ''}
                     <div id="mgt-purposes-list" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
                 </div>
 
@@ -182,6 +186,8 @@ window.managementView = {
     populatePurposesList: function() {
         const list = document.getElementById('mgt-purposes-list');
         if (!list) return;
+        const user = window.appEngine.currentUser;
+        const canEdit = user.userType === 'Owner' || user.permWorkPurposes === 'Edit';
         const purposes = window.stateManager.get('purposes').filter(p => p !== 'Other (Manual)');
         if (purposes.length === 0) {
             list.innerHTML = '<span style="color:var(--text-muted); font-size:13px;">No custom purposes yet. Add one above.</span>';
@@ -190,12 +196,17 @@ window.managementView = {
         list.innerHTML = purposes.map(p => `
             <span style="display:inline-flex; align-items:center; gap:6px; background:hsla(0,0%,100%,0.08); border:1px solid var(--glass-border); border-radius:var(--radius-pill); padding:6px 12px; font-size:13px; font-weight:600; color:var(--text-main);">
                 ${p}
-                <button onclick="managementView.removePurpose('${p.replace(/'/g,"\\'")}')" style="background:none; border:none; color:var(--danger); cursor:pointer; font-size:16px; line-height:1; padding:0; margin:0;">×</button>
+                ${canEdit ? `<button onclick="managementView.removePurpose('${p.replace(/'/g,"\\'")}')" style="background:none; border:none; color:var(--danger); cursor:pointer; font-size:16px; line-height:1; padding:0; margin:0;">×</button>` : ''}
             </span>
         `).join('');
     },
 
     addPurpose: function() {
+        const user = window.appEngine.currentUser;
+        if (user.userType !== 'Owner' && user.permWorkPurposes !== 'Edit') {
+            window.appEngine.showToast('Access Denied. You do not have permission to modify purposes.', 'danger');
+            return;
+        }
         const input = document.getElementById('mgt-new-purpose');
         const val = (input?.value || '').trim();
         if (!val) { window.appEngine.showToast('Please enter a purpose name.', 'warning'); return; }

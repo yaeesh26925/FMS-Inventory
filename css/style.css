@@ -167,6 +167,8 @@ h1, h2, h3, .brand {
 /* ── LAYOUT ── */
 .layout { display: flex; height: 100vh; }
 
+
+
 /* ── SIDEBAR ── */
 .sidebar {
     width: 280px;
@@ -456,12 +458,17 @@ tbody tr:hover td { background: var(--surface-hover); color: var(--text-main); }
 
 /* ── STATUS PILLS ── */
 .status {
-    padding: 6px 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 16px;
     border-radius: var(--radius-pill);
     font-size: 11px;
     font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.06em;
+    min-width: 90px;
+    white-space: nowrap;
 }
 .status-green  { background: hsla(150, 80%, 50%, 0.1); color: var(--success); border: 1px solid hsla(150, 80%, 50%, 0.2); }
 .status-yellow { background: hsla(45, 100%, 55%, 0.1); color: var(--warning); border: 1px solid hsla(45, 100%, 55%, 0.2); }
@@ -499,17 +506,8 @@ tbody tr:hover td { background: var(--surface-hover); color: var(--text-main); }
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* ── RESPONSIVE ── */
-@media (max-width: 1024px) {
-    .sidebar { width: 88px; }
-    .brand, .nav-link span, .user-name { display: none; }
-    .nav-link { justify-content: center; padding: 20px; font-size: 20px; }
-}
-
-@media (max-width: 768px) {
-    .workspace { padding: 24px; }
-    .topbar h1 { font-size: 28px; }
-}
+/* ── RESPONSIVE — see css/mobile.css for full mobile styles ── */
+/* Sidebar overrides removed */
 /* ── MODALS ── */
 .modal-overlay {
     position: fixed;

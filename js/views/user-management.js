@@ -16,10 +16,10 @@ window.userManagementView = {
             const isCurrentUser = u.phone === currentUser.phone;
             const role = u.userType || 'Standard';
             const rc = badge => `<span style="font-family:monospace; font-size:12px; background:hsla(0,0%,100%,0.07); padding:2px 8px; border-radius:4px;">${badge}</span>`;
-            const perms = ['permRestock', 'permProcurement', 'permDetailedInfo', 'permAnalytics', 'permTasks', 'permReports'];
+            const perms = ['permRestock', 'permProcurement', 'permDetailedInfo', 'permAnalytics', 'permTasks', 'permReports', 'permTakeImmediately', 'permWorkPurposes'];
             const permIcons = perms.map(p => {
                 const val = u[p] || 'Non';
-                const tip = { permRestock: '📦', permProcurement: '🏢', permDetailedInfo: '📋', permAnalytics: '📊', permTasks: '✅', permReports: '📜' }[p];
+                const tip = { permRestock: '📦', permProcurement: '🏢', permDetailedInfo: '📋', permAnalytics: '📊', permTasks: '✅', permReports: '📜', permTakeImmediately: '⚡', permWorkPurposes: '⚙️' }[p];
                 return `<span title="${p.replace('perm', '')} — ${val}" style="font-size:12px; opacity:${val === 'Non' ? 0.3 : 1};">${tip}${permLabel[val] || '✕'}</span>`;
             }).join(' ');
 
@@ -131,7 +131,7 @@ window.userManagementView = {
         }
 
         // Gather permissions for Admin role
-        const permKeys = ['permRestock', 'permProcurement', 'permDetailedInfo', 'permAnalytics', 'permTasks', 'permReports'];
+        const permKeys = ['permRestock', 'permProcurement', 'permDetailedInfo', 'permAnalytics', 'permTasks', 'permReports', 'permTakeImmediately', 'permWorkPurposes'];
         const perms = {};
         if (role === 'Admin') {
             permKeys.forEach(k => {
@@ -193,7 +193,7 @@ window.userManagementView = {
         const passEl = document.getElementById('um-e-password');
         if (passEl) passEl.value = '';
 
-        const permKeys = ['permRestock', 'permProcurement', 'permDetailedInfo', 'permAnalytics', 'permTasks', 'permReports'];
+        const permKeys = ['permRestock', 'permProcurement', 'permDetailedInfo', 'permAnalytics', 'permTasks', 'permReports', 'permTakeImmediately', 'permWorkPurposes'];
         permKeys.forEach(k => {
             const el = document.getElementById('um-e-' + k);
             if (el) el.value = user[k] || 'Non';
@@ -225,7 +225,7 @@ window.userManagementView = {
         const passEl  = document.getElementById('um-e-password');
         const newPass = passEl && passEl.value.trim() ? btoa(passEl.value.trim()) : users[idx].password;
 
-        const permKeys = ['permRestock', 'permProcurement', 'permDetailedInfo', 'permAnalytics', 'permTasks', 'permReports'];
+        const permKeys = ['permRestock', 'permProcurement', 'permDetailedInfo', 'permAnalytics', 'permTasks', 'permReports', 'permTakeImmediately', 'permWorkPurposes'];
         const perms = {};
         permKeys.forEach(k => {
             const el = document.getElementById('um-e-' + k);

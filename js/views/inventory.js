@@ -271,9 +271,12 @@ window.inventoryView = {
         
         const actionSelect = document.getElementById('inv-req-action');
         const user = window.appEngine.currentUser;
-        const isAdmin = user && (user.userType === 'Admin' || user.userType === 'Owner');
-        // Admins and Owners can always take immediately
-        const canTake = isAdmin || (user && user.requestPerm === 'Edit');
+        if (!user) return;
+
+        // Owners can take immediately; Admins need permTakeImmediately; Standard needs requestPerm
+        const canTake = (user.userType === 'Owner') || 
+                        (user.userType === 'Admin' && user.permTakeImmediately === 'Edit') || 
+                        (user.userType === 'Standard' && user.requestPerm === 'Edit');
         
         if (!user || !canTake) {
             actionSelect.innerHTML = '<option value="request">Submit Request (Wait for Approval)</option>';

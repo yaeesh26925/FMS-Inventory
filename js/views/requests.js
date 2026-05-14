@@ -103,8 +103,8 @@ window.requestsView = {
 
 
             let actions = '<span style="color:var(--text-muted)">—</span>';
-            // Admins and Owners can always approve/reject
-            const canEdit = isAdmin;
+            // Owners can always approve/reject; Admins need permTakeImmediately === 'Edit'
+            const canEdit = currentUser.userType === 'Owner' || (currentUser.userType === 'Admin' && currentUser.permTakeImmediately === 'Edit');
 
             if (req.status === 'PENDING' && canEdit) {
                 actions = `
