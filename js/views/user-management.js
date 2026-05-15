@@ -255,17 +255,24 @@ window.userManagementView = {
 
     // ── Delete User ──────────────────────────────────────────────────────────
     deleteUser: function (phone) {
-        const users = window.stateManager.get('users');
-        const user  = users.find(u => u.phone === phone);
-        if (!user) return;
+        try {
+            const users = window.stateManager.get('users');
+            const user  = users.find(u => u.phone === phone);
+            if (!user) return;
 
-        const confirmed = confirm(`⚠️ Remove user "${user.name || phone}" from the system?\n\nThis cannot be undone.`);
-        if (!confirmed) return;
+            const confirmed = confirm(`⚠️ Remove user "${user.name || phone}" from the system?\n\nThis cannot be undone.`);
+            if (!confirmed) return;
 
-        const updated = users.filter(u => u.phone !== phone);
-        window.stateManager.set('users', updated);
-        window.stateManager.logAudit('USER_DELETED', `Owner removed user: ${user.name || phone}`, window.appEngine.currentUser);
-        window.appEngine.showToast(`🗑 ${user.name || phone} removed from system.`, 'warning');
-        this.renderTab();
+            const updated = users.filter(u => u.phone !== phone);
+            window.stateManager.set('users', updated);
+            
+            window.stateManager.logAudit('USER_DELETED', `Owner removed user: ${user.name || phone}`, window.appEngine.currentUser);
+            window.appEngine.showToast(`🗑 ${user.name || phone} removed from system.`, 'warning');
+            
+            // Re-render happens automatically via state-changed event -> managementView.render() -> switchTab('users') -> renderTab()
+        } catch (err) {
+            console.error('Error deleting user:', err);
+            window.appEngine.showToast('Failed to delete user.', 'danger');
+        }
     }
 };

@@ -1,5 +1,6 @@
 // views/management.js
 window.managementView = {
+    currentTab: 'purposes',
     render: function() {
         const container = document.getElementById('module-management');
         const user = window.appEngine.currentUser;
@@ -156,9 +157,11 @@ window.managementView = {
         
         this.populateAudit();
         this.populatePurposesList();
+        this.switchTab(this.currentTab);
     },
 
     switchTab: function(tab) {
+        this.currentTab = tab;
         // Update button styles
         document.querySelectorAll('.mgt-tab-btn').forEach(btn => {
             btn.style.color = 'var(--text-muted)';

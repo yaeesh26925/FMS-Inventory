@@ -528,22 +528,30 @@ window.procurementView = {
     },
 
     deleteRecord: function(index) {
-        const pos = window.stateManager.get('purchaseOrders');
-        const po = pos[index];
-        if (!po) return;
-
-        if (!confirm(`Are you sure you want to delete the PR Record for "${po['PR NO']}"? This will delete all associated data.`)) return;
-
         try {
+            const pos = window.stateManager.get('purchaseOrders');
+            if (index < 0 || index >= pos.length) {
+                console.error('Invalid index for procurement deletion:', index);
+                return;
+            }
+
+            const po = pos[index];
+            if (!po) return;
+
+            if (!confirm(`Are you sure you want to delete the PR Record for "${po['PR NO'] || 'Unknown'}"? This will delete all associated data.`)) return;
+
+            // Log audit before state change to ensure we have the data
+            window.stateManager.logAudit('PROCUREMENT_DELETE', `Deleted PR Record: ${po['PR NO'] || 'Unknown'}`, window.appEngine.currentUser);
+
             pos.splice(index, 1);
             window.stateManager.set('purchaseOrders', pos);
             
-            // Log audit
-            window.stateManager.logAudit('PROCUREMENT_DELETE', `Deleted PR Record: ${po['PR NO']}`, window.appEngine.currentUser);
-            
             window.appEngine.showToast('Record deleted successfully.', 'warning');
-            this.populateTable();
-            if (document.getElementById('proc-analytics-section').style.display !== 'none') {
+            
+            // Re-render happens automatically via state-changed event
+            // Only update analytics if they are currently visible
+            const analyticsSection = document.getElementById('proc-analytics-section');
+            if (analyticsSection && analyticsSection.style.display !== 'none') {
                 this.updateAnalytics();
             }
         } catch (err) {

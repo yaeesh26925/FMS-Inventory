@@ -167,8 +167,28 @@ window.tasksView = {
             t.completed = false;
             t.completedAt = null;
             window.stateManager.set('tasks', tasks);
-            this.renderList();
+            // Re-render happens automatically via state-changed event
         }
+    },
+
+    editTask: function(id) {
+        const tasks = window.stateManager.get('tasks');
+        const task = tasks.find(t => String(t.id) === String(id));
+        if (!task) return;
+
+        const newTitle = prompt('Edit Task Title:', task.title);
+        if (newTitle === null) return; // Cancelled
+        
+        if (!newTitle.trim()) {
+            alert('Task title cannot be empty.');
+            return;
+        }
+
+        const oldTitle = task.title;
+        task.title = newTitle.trim();
+        window.stateManager.set('tasks', tasks);
+        window.stateManager.logAudit('TASK_EDIT', `Renamed task from "${oldTitle}" to "${task.title}"`, window.appEngine.currentUser);
+        window.appEngine.showToast('Task updated!', 'success');
     },
 
     deleteTask: function(id) {
@@ -176,17 +196,23 @@ window.tasksView = {
         
         try {
             let tasks = window.stateManager.get('tasks');
-            const initialCount = tasks.length;
-            tasks = tasks.filter(t => String(t.id) !== String(id));
-            
-            if (tasks.length === initialCount) {
+            const taskToDelete = tasks.find(t => String(t.id) === String(id));
+            if (!taskToDelete) {
                 console.warn('Task not found for deletion:', id);
                 return;
             }
 
+            const initialLength = tasks.length;
+            tasks = tasks.filter(t => String(t.id) !== String(id));
+            
+            if (tasks.length === initialLength) {
+                return;
+            }
+
             window.stateManager.set('tasks', tasks);
-            this.renderList();
+            window.stateManager.logAudit('TASK_DELETE', `Deleted task: ${taskToDelete.title}`, window.appEngine.currentUser);
             window.appEngine.showToast('Task deleted successfully.', 'warning');
+            // Re-render happens automatically via state-changed event
         } catch (err) {
             console.error('Error deleting task:', err);
             window.appEngine.showToast('Failed to delete task.', 'danger');
