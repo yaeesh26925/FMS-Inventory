@@ -14,28 +14,12 @@
     <link id="main-css" rel="stylesheet" href="css/style.css">
     <link id="mobile-css" rel="stylesheet" href="css/mobile.css">
     <script>
-        // Force a complete system wipe once to clear out broken caching
-        if (!localStorage.getItem('v7_wipe_done')) {
-            localStorage.clear();
-            localStorage.setItem('v7_wipe_done', 'true');
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                    for(let r of registrations) r.unregister();
-                });
-            }
-            if (window.caches) {
-                caches.keys().then(function(names) {
-                    for (let name of names) caches.delete(name);
-                });
-            }
-            window.location.reload(true);
-        }
-        
-        // Permanent fix for local dev CSS caching issues
+        // Clear local dev CSS caching issues but preserve PWA
         if (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:') {
             document.getElementById('main-css').href = 'css/style.css?v=' + new Date().getTime();
         }
     </script>
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
@@ -49,12 +33,8 @@
     <div class="orb orb-2"></div>
     <div class="orb orb-3"></div>
 
-    <div class="mobile-header" id="mobile-header">
-        <div class="brand-sm">⛽ Fuel Inventory</div>
-        <div class="mobile-header-actions">
-            <button class="mobile-icon-btn" onclick="appEngine.toggleTheme()" title="Toggle Theme" id="mobile-theme-btn">🌓</button>
-        </div>
-    </div>
+
+
 
     <div id="sidebar-backdrop" class="sidebar-backdrop" onclick="appEngine.toggleMobileMenu()"></div>
 
@@ -62,25 +42,24 @@
     <div id="view-login" class="view-container active">
         <div class="auth-wrapper">
             <div class="auth-card">
-                <h2>Secure Login</h2>
+                <div class="brand">
+                    <img src="assets/favicon.png" class="logo-img" alt="Logo">
+                    Fuel Inventory
+                </div>
                 
                 <div id="login-step-1">
                     <div class="input-group">
                         <label>Phone Number</label>
-                        <input type="text" id="login-phone" placeholder="e.g. +9607777777" onkeydown="if(event.key === 'Enter') sendFirebaseOTP()">
-                        <small style="color:var(--text-muted); font-size:11px;">Include country code (e.g., +960)</small>
+                        <input type="text" id="login-phone" placeholder="e.g. +9607777777" onkeydown="if(event.key === 'Enter') loginWithPassword()">
                     </div>
-                    <button class="btn btn-primary" id="btn-send-otp" onclick="sendFirebaseOTP()">Send OTP</button>
                     
-                    <div style="margin-top:24px; border-top:1px solid var(--glass-border); padding-top:16px;">
-
-                        <p style="font-size:13px; color:var(--text-muted); margin-bottom:12px; text-align:center;">Or login with password</p>
-                        <div class="input-group">
-                            <input type="password" id="login-password" placeholder="Password" onkeydown="if(event.key === 'Enter') loginWithPassword()">
-                        </div>
-                        <button class="btn btn-secondary" style="width:100%" onclick="loginWithPassword()">Log In with Password</button>
+                    <div class="input-group">
+                        <label>Password</label>
+                        <input type="password" id="login-password" placeholder="Enter your password" onkeydown="if(event.key === 'Enter') loginWithPassword()">
                     </div>
+                    <button class="btn btn-primary" style="width:100%" onclick="loginWithPassword()">Log In</button>
                 </div>
+
 
                 <div id="recaptcha-container" style="margin-bottom: 16px; min-height: 1px;"></div>
 
@@ -100,7 +79,11 @@
                 <div id="login-error" class="error-msg" style="margin-top: 12px; color:var(--danger); font-size:13px; font-weight:600;"></div>
                 <div id="login-forgot-password" style="text-align:center; margin-top:32px; display:flex; flex-direction:column; gap:12px; font-size:13px;">
                     <a href="#" onclick="showOTPModal(1)" style="color:var(--primary); text-decoration:none; font-weight:600;">Forgot Password?</a>
+                    <div style="color:var(--text-muted); font-size:11px; margin-top:8px;">
+                        Need to login via OTP instead? <a href="#" onclick="startOTPLogin()" style="color:var(--primary); text-decoration:underline;">Click here</a>
+                    </div>
                 </div>
+
 
             </div>
         </div>
@@ -111,10 +94,27 @@
 
     <!-- Main Dashboard Application -->
     <div id="view-app" class="view-container">
+        <!-- Mobile Header -->
+        <div class="mobile-header">
+            <button class="mobile-icon-btn" onclick="window.appEngine.toggleMobileMenu()">☰</button>
+            <div class="brand-sm">
+                <img src="assets/favicon.png" class="logo-img" alt="Logo" style="width:24px; height:24px; vertical-align:middle; margin-right:6px;">
+                Fuel Inventory
+            </div>
+            <div class="mobile-header-actions">
+                <button class="mobile-icon-btn" id="mobile-theme-btn" onclick="window.appEngine.toggleTheme()">🌙</button>
+            </div>
+        </div>
+
         <div class="layout">
+
             <!-- Sidebar -->
             <nav class="sidebar" id="sidebar">
-                <div class="brand">Fuel Inventory</div>
+                <div class="brand">
+                    <img src="assets/favicon.png" class="logo-img" alt="Logo">
+                    Fuel Inventory
+                </div>
+
                 <div class="nav-links">
                     <a href="#" class="nav-link active" data-target="inventory" id="nav-inventory">📦 Inventory</a>
                     <a href="#" class="nav-link" data-target="requests" id="nav-requests">📝 Requests</a>
@@ -123,6 +123,8 @@
                 <div class="user-block">
                     <div id="current-user-name" class="user-name">Staff Mode</div>
                     <button id="auth-btn" class="btn btn-primary btn-sm" onclick="window.appEngine.showLogin()">Admin Login</button>
+                    <button id="mobile-logout-btn" class="mobile-logout-btn">🚪 Logout</button>
+
                 </div>
             </nav>
 
@@ -152,48 +154,35 @@
                 <div id="module-tasks" class="module"></div>
                 <div id="module-reports" class="module"></div>
                 <div id="module-inventory-flow" class="module"></div>
+
+
             </main>
         </div>
     </div>
 
-    <!-- Bottom Navigation Bar (Mobile) -->
-    <nav class="bottom-nav" id="bottom-nav" aria-label="Mobile Navigation">
-        <div class="bottom-nav-inner">
-            <button class="bottom-nav-item active" id="bnav-inventory" onclick="appEngine.mobileNavigate('inventory')">
-                <span class="bottom-nav-icon">📦</span>
-                <span class="bottom-nav-label">Inventory</span>
-            </button>
-            <button class="bottom-nav-item" id="bnav-requests" onclick="appEngine.mobileNavigate('requests')">
-                <span class="bottom-nav-icon">📝</span>
-                <span class="bottom-nav-label">Requests</span>
-            </button>
-            <button class="bottom-nav-item" id="bnav-management" onclick="appEngine.mobileNavigate('management')" style="display:none;">
-                <span class="bottom-nav-icon">⚙️</span>
-                <span class="bottom-nav-label">Manage</span>
-            </button>
-        </div>
-    </nav>
+
 
 
 
     <!-- Core Scripts -->
-    <script src="js/config.js?v=9"></script>
-    <script src="js/state.js?v=9"></script>
-    <script src="js/auth.js?v=9"></script>
+    <script src="js/config.js?v=11"></script>
+    <script src="js/state.js?v=11"></script>
+    <script src="js/auth.js?v=11"></script>
     <!-- View Scripts -->
-    <script src="js/views/inventory.js?v=9"></script>
-    <script src="js/views/requests.js?v=9"></script>
-    <script src="js/views/procurement.js?v=9"></script>
-    <script src="js/views/financials.js?v=9"></script>
-    <script src="js/views/management.js?v=9"></script>
-    <script src="js/views/correction.js?v=9"></script>
-    <script src="js/views/dashboard.js?v=9"></script>
-    <script src="js/views/tasks.js?v=9"></script>
-    <script src="js/views/reports.js?v=9"></script>
-    <script src="js/views/inventory-flow.js?v=9"></script>
-    <script src="js/views/user-management.js?v=9"></script>
+    <script src="js/views/inventory.js?v=11"></script>
+    <script src="js/views/requests.js?v=11"></script>
+    <script src="js/views/procurement.js?v=11"></script>
+    <script src="js/views/financials.js?v=11"></script>
+    <script src="js/views/management.js?v=11"></script>
+    <script src="js/views/correction.js?v=11"></script>
+    <script src="js/views/dashboard.js?v=11"></script>
+    <script src="js/views/tasks.js?v=11"></script>
+    <script src="js/views/reports.js?v=11"></script>
+    <script src="js/views/inventory-flow.js?v=11"></script>
+    <script src="js/views/user-management.js?v=11"></script>
     <!-- Main Routing -->
-    <!-- Modals -->
+    <script src="js/app.js?v=11"></script>
+
     <!-- Create User Modal (Owner-managed via User Management tab) -->
     <div id="um-create-modal" class="modal-overlay">
         <div class="modal-content" style="max-width: 480px;">
@@ -349,6 +338,5 @@
         </div>
     </div>
 
-    <script src="js/app.js?v=8"></script>
 </body>
 </html>

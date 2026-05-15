@@ -13,7 +13,9 @@ class AppEngine {
         this.updateChartDefaults();
 
         this.initDOM();
+        this.initEventListeners();
     }
+
 
     updateChartDefaults() {
         if (window.Chart) {
@@ -61,7 +63,24 @@ class AppEngine {
         });
     }
 
+    initEventListeners() {
+        window.addEventListener('state-changed', (e) => {
+            console.log('State changed, refreshing active view...');
+            const activeModule = document.querySelector('.module.active');
+            if (activeModule) {
+                const moduleName = activeModule.id.replace('module-', '');
+                const view = window[moduleName + 'View'];
+                if (view && typeof view.render === 'function') {
+                    // Avoid full re-render for input focus stability if possible, 
+                    // but for dashboard/inventory it's usually fine.
+                    view.render();
+                }
+            }
+        });
+    }
+
     boot() {
+
         console.log("AppEngine boot started...");
         const storedUser = localStorage.getItem('currentUser');
         console.log("Stored user found:", !!storedUser);
@@ -82,14 +101,25 @@ class AppEngine {
                 localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
 
                 const nameEl = document.getElementById('current-user-name');
-                if (nameEl) nameEl.innerText = this.currentUser.name || this.currentUser.phone;
+                const displayName = this.currentUser.name || this.currentUser.phone || 'User';
+                if (nameEl) nameEl.innerText = (displayName === 'undefined' || !displayName) ? 'User' : displayName;
                 
                 const btn = document.getElementById('auth-btn');
                 if(btn) {
                     btn.innerText = 'Logout';
                     btn.className = 'btn btn-logout btn-sm';
-                    btn.onclick = () => window.logout();
+                    btn.style.display = 'inline-flex'; // Ensure visible on desktop
+                    btn.onclick = () => this.logout();
                 }
+
+                // Mobile Sidebar Logout
+                const mobileLogoutBtn = document.getElementById('mobile-logout-btn');
+                if (mobileLogoutBtn) {
+                    mobileLogoutBtn.onclick = () => this.logout();
+                    // Hide the regular auth-btn on mobile when logged in to avoid duplicate buttons
+                    if (window.innerWidth <= 850 && btn) btn.style.display = 'none';
+                }
+
                 
                 console.log("Updating UI components...");
                 this.updateTopbar();
@@ -177,9 +207,7 @@ class AppEngine {
         toggleNav('requests', true);
         toggleNav('management', isAdmin);
 
-        // Bottom nav — show management only for admins
-        const bnavMgmt = document.getElementById('bnav-management');
-        if (bnavMgmt) bnavMgmt.style.display = isAdmin ? 'flex' : 'none';
+
     }
 
     navigate(moduleName) {
@@ -198,15 +226,19 @@ class AppEngine {
                 return;
             }
 
-            // Granular Admin Permissions
             const permMap = {
                 'correction': 'permRestock',
                 'procurement': 'permProcurement',
                 'financials': 'permDetailedInfo',
                 'dashboard': 'permAnalytics',
                 'tasks': 'permTasks',
-                'reports': 'permReports'
+                'reports': 'permReports',
+                'purposes': 'permWorkPurposes',
+                'audit': 'permAuditLog',
+                'users': 'userType'
             };
+
+
 
             const permKey = permMap[moduleName];
             if (user.userType !== 'Owner' && permKey && (user[permKey] === 'Non' || !user[permKey])) {
@@ -232,25 +264,7 @@ class AppEngine {
             }
         }
 
-        // Sync bottom nav active state
-        const bnavMap = {
-            'inventory': 'bnav-inventory',
-            'requests': 'bnav-requests',
-            'management': 'bnav-management',
-            'procurement': 'bnav-management',
-            'financials': 'bnav-management',
-            'correction': 'bnav-management',
-            'dashboard': 'bnav-management',
-            'tasks': 'bnav-management',
-            'reports': 'bnav-management',
-            'inventory-flow': 'bnav-management'
-        };
-        document.querySelectorAll('.bottom-nav-item').forEach(b => b.classList.remove('active'));
-        const bnavId = bnavMap[moduleName];
-        if (bnavId) {
-            const bnavEl = document.getElementById(bnavId);
-            if (bnavEl) bnavEl.classList.add('active');
-        }
+
 
         // Update topbar title
         const titleMap = {
@@ -265,6 +279,7 @@ class AppEngine {
             'reports': 'Reports',
             'inventory-flow': 'Inv. Flow'
         };
+
         const titleEl = document.getElementById('topbar-title');
         if (titleEl && titleMap[moduleName]) titleEl.textContent = titleMap[moduleName];
         
@@ -277,7 +292,42 @@ class AppEngine {
         if(renderObj && typeof renderObj.render === 'function') {
             renderObj.render();
         }
+
+        // Auto-close mobile menu after navigation
+        const sidebar = document.getElementById('sidebar');
+        if (window.innerWidth <= 850 && sidebar && sidebar.classList.contains('mobile-active')) {
+            this.toggleMobileMenu();
+        }
     }
+
+    toggleMobileMenu() {
+        const sidebar = document.getElementById('sidebar');
+        const backdrop = document.getElementById('sidebar-backdrop');
+        if (!sidebar) return;
+
+        sidebar.classList.toggle('mobile-active');
+        if (backdrop) backdrop.classList.toggle('active');
+
+        // Change hamburger icon to X if active
+        const btn = document.querySelector('.mobile-menu-btn');
+        if (btn) {
+            btn.innerText = sidebar.classList.contains('mobile-active') ? '✕' : '☰';
+        }
+    }
+
+    logout() {
+        // Use global logout if available, otherwise fallback to local logic
+        if (typeof window.logout === 'function') {
+            window.logout();
+        } else {
+            if (!confirm('Are you sure you want to log out?')) return;
+            localStorage.removeItem('currentUser');
+            this.currentUser = null;
+            this.showLogin();
+            this.showToast('Logged out successfully.', 'info');
+        }
+    }
+
 
 
 

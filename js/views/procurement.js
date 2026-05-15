@@ -6,14 +6,19 @@ window.procurementView = {
         const container = document.getElementById('module-procurement');
 
         const user = window.appEngine.currentUser;
-        const canEdit = user.permProcurement === 'Edit';
+        const canEdit = user.userType === 'Owner' || user.permProcurement === 'Edit';
 
         container.innerHTML = `
             <div class="header-row">
-                <h1>PR &amp; PO</h1>
-                <div style="display:flex; gap:12px;">
-                    ${canEdit ? `<button class="btn btn-primary" onclick="procurementView.showAddModal()" style="width:auto">➕ Create New PR</button>` : ''}
-                    <button class="btn btn-secondary" onclick="procurementView.toggleAnalytics()" style="width:auto">📊 Toggle Analytics</button>
+                <div></div>
+
+                <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                    ${canEdit ? `
+                        <button class="btn btn-primary" onclick="procurementView.showAddModal()" style="width:auto">➕ Add PR &amp; PO</button>
+                    ` : ''}
+
+                    <button class="btn btn-secondary" onclick="procurementView.toggleAnalytics()" style="width:auto">📊 Analytics</button>
+
                     <button class="btn btn-back" onclick="window.appEngine.navigate('management')" style="width:auto">⬅️ Back to Management</button>
                 </div>
             </div>
@@ -156,6 +161,14 @@ window.procurementView = {
                             <label>Remarks / Notes</label>
                             <textarea id="m-remarks" style="width:100%; height:60px; padding:8px; border-radius:6px; background:var(--bg-color); color:var(--text-primary); border:1px solid var(--border);"></textarea>
                         </div>
+                        <div class="input-group" style="grid-column: span 2">
+                            <label>PDF Attachment (PO Document)</label>
+                            <div style="display:flex; gap:12px; align-items:center;">
+                                <input type="file" id="m-pdf-file" accept="application/pdf" style="flex:1; padding:8px; border:1px dashed var(--glass-border); border-radius:var(--radius-md);">
+                                <div id="m-pdf-status" style="font-size:12px; color:var(--success);"></div>
+                            </div>
+                        </div>
+
                     </div>
                     <div style="margin-top:20px; display:flex; justify-content:flex-end;">
                         <button class="btn btn-secondary" onclick="procurementView.closeModal()" style="margin-right:12px;">Cancel</button>
@@ -184,13 +197,18 @@ window.procurementView = {
 
     showAddModal: function() {
         this.editingIndex = -1;
-        document.getElementById('proc-modal-title').innerText = "Create New PR Record";
+        document.getElementById('proc-modal-title').innerText = "Create New PR & PO Record";
         this.resetModalFields();
         // Set default date to today
         document.getElementById('m-pr-date').value = new Date().toISOString().split('T')[0];
-        document.getElementById('m-issued-by').value = window.appEngine.currentUser?.username || '';
+        document.getElementById('m-issued-by').value = window.appEngine.currentUser?.name || window.appEngine.currentUser?.username || '';
+        
+        setTimeout(() => document.getElementById('m-pr-no').focus(), 100);
+
         document.getElementById('proc-modal').classList.add('active');
     },
+
+
 
     showEditModal: function(index) {
         this.editingIndex = index;
@@ -226,7 +244,10 @@ window.procurementView = {
             if(el.tagName === 'SELECT') el.value = '-';
             else el.value = '';
         });
+        document.getElementById('m-pdf-file').value = '';
+        document.getElementById('m-pdf-status').innerText = '';
     },
+
 
     saveRecord: function() {
         const prNo = document.getElementById('m-pr-no').value.trim();
@@ -261,9 +282,22 @@ window.procurementView = {
         }
 
         window.stateManager.set('purchaseOrders', pos);
+        
+        // Handle PDF upload if selected
+        const fileInput = document.getElementById('m-pdf-file');
+        if (fileInput && fileInput.files[0]) {
+            const statusEl = document.getElementById('m-pdf-status');
+            statusEl.innerText = "⏳ Uploading PDF...";
+            window.stateManager.uploadProcurementPDF(prNo, fileInput.files[0], (url) => {
+                statusEl.innerText = "✅ Uploaded";
+                this.populateTable();
+            });
+        }
+
         this.closeModal();
         this.populateTable();
     },
+
 
     uploadPDF: function(prNumber) {
         const input = document.createElement('input');
@@ -346,7 +380,8 @@ window.procurementView = {
             const poStatusBadge    = this.statusBadge(poStatus);
 
             const user = window.appEngine.currentUser;
-            const canEdit = user.permProcurement === 'Edit';
+            const canEdit = user.userType === 'Owner' || user.permProcurement === 'Edit';
+
 
             let attachmentHtml = '-';
             if (pdfUrl) {
@@ -377,8 +412,11 @@ window.procurementView = {
                 <td style="font-size:12px; color:var(--text-muted)">${receivedDate}</td>
                 <td style="font-size:12px; font-weight:bold;">${computedRemarks}</td>
                 <td style="text-align:center;">${attachmentHtml}</td>
-                <td>
-                    ${canEdit ? `<button class="btn btn-secondary btn-sm" onclick="procurementView.showEditModal(${index})">✏️ Edit</button>` : '-'}
+                <td style="display:flex; gap:6px;">
+                    ${canEdit ? `
+                        <button class="btn btn-secondary btn-sm" onclick="procurementView.showEditModal(${index})">✏️ Edit</button>
+                        <button class="btn btn-danger btn-sm" onclick="procurementView.deleteRecord(${index})" style="padding:5px 10px;">🗑️</button>
+                    ` : '-'}
                 </td>
             </tr>`;
         }).join('');
@@ -487,5 +525,30 @@ window.procurementView = {
             color = '#3b82f6'; bg = 'rgba(59,130,246,0.12)';
         }
         return `<span style="padding:2px 8px; border-radius:20px; font-size:11px; font-weight:600; background:${bg}; color:${color};">${status}</span>`;
+    },
+
+    deleteRecord: function(index) {
+        const pos = window.stateManager.get('purchaseOrders');
+        const po = pos[index];
+        if (!po) return;
+
+        if (!confirm(`Are you sure you want to delete the PR Record for "${po['PR NO']}"? This will delete all associated data.`)) return;
+
+        try {
+            pos.splice(index, 1);
+            window.stateManager.set('purchaseOrders', pos);
+            
+            // Log audit
+            window.stateManager.logAudit('PROCUREMENT_DELETE', `Deleted PR Record: ${po['PR NO']}`, window.appEngine.currentUser);
+            
+            window.appEngine.showToast('Record deleted successfully.', 'warning');
+            this.populateTable();
+            if (document.getElementById('proc-analytics-section').style.display !== 'none') {
+                this.updateAnalytics();
+            }
+        } catch (err) {
+            console.error('Error deleting procurement record:', err);
+            window.appEngine.showToast('Failed to delete record.', 'danger');
+        }
     }
 };

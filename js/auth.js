@@ -106,6 +106,34 @@ function sendFirebaseOTP() {
         });
 }
 
+function startOTPLogin() {
+    document.getElementById('login-step-1').style.display = 'none';
+    document.getElementById('login-step-2').style.display = 'none';
+    
+    // We'll reuse step 1's phone input but show a "Send OTP" button instead
+    const step1 = document.getElementById('login-step-1');
+    step1.style.display = 'block';
+    const btn = step1.querySelector('.btn-primary');
+    btn.id = 'btn-send-otp';
+    btn.innerText = 'Send OTP';
+    btn.onclick = sendFirebaseOTP;
+
+    
+    // Add a small label to show we are in OTP mode
+    let otpLabel = document.getElementById('otp-mode-label');
+    if (!otpLabel) {
+        otpLabel = document.createElement('div');
+        otpLabel.id = 'otp-mode-label';
+        otpLabel.style.cssText = 'background:rgba(59,130,246,0.1); color:var(--primary); padding:8px; border-radius:4px; margin-bottom:16px; font-size:12px; text-align:center; font-weight:600;';
+        otpLabel.innerText = '🔐 OTP LOGIN MODE';
+        step1.prepend(otpLabel);
+    }
+    
+    // Hide password field
+    const passGroup = document.getElementById('login-password').parentElement;
+    if (passGroup) passGroup.style.display = 'none';
+}
+
 function verifyFirebaseOTP() {
     const code = document.getElementById('login-otp').value.trim();
     if (!code || !confirmationResult) {
@@ -130,8 +158,14 @@ function verifyFirebaseOTP() {
 
             if (user) {
                 localStorage.setItem('currentUser', JSON.stringify(user));
-                window.stateManager.logAudit('USER_LOGIN', 'User authenticated via Firebase OTP', { name: user.name || user.phone });
+                window.stateManager.logAudit('USER_LOGIN', 'User authenticated via Firebase OTP (Forgot Password flow)', { name: user.name || user.phone });
                 window.appEngine.boot();
+                
+                // Cleanup OTP UI state for next time
+                const otpLabel = document.getElementById('otp-mode-label');
+                if (otpLabel) otpLabel.remove();
+                const passGroup = document.getElementById('login-password').parentElement;
+                if (passGroup) passGroup.style.display = 'block';
             } else {
                 document.getElementById('login-error').innerText = 'User authenticated but not found in system directory.';
                 auth.signOut();
@@ -146,6 +180,7 @@ function verifyFirebaseOTP() {
             btn.disabled = false;
         });
 }
+
 
 function resetLoginView() {
     document.getElementById('login-step-1').style.display = 'block';
@@ -200,12 +235,31 @@ function loginWithPassword() {
 }
 
 function logout() {
+    if (!confirm('Are you sure you want to log out?')) return;
+
     const user = JSON.parse(localStorage.getItem('currentUser'));
-    if(user) window.stateManager.logAudit('USER_LOGOUT', 'User logged out', { name: user.name || user.phone });
-    localStorage.removeItem('currentUser');
+    if (user && window.stateManager) {
+        window.stateManager.logAudit('USER_LOGOUT', 'User logged out', { name: user.name || user.phone });
+    }
     
-    // Force back to login view
-    window.appEngine.boot();
+    localStorage.removeItem('currentUser');
+
+    // Sign out from Firebase if initialized
+    if (window.firebase && firebase.apps.length) {
+        try {
+            firebase.auth().signOut().catch(err => console.error("Firebase signOut error:", err));
+        } catch (e) {
+            console.warn("Firebase auth not ready for signOut");
+        }
+    }
+
+    if (window.appEngine) {
+        window.appEngine.currentUser = null;
+        window.appEngine.boot();
+        window.appEngine.showToast('Logged out successfully.', 'info');
+    } else {
+        location.reload();
+    }
 }
 
 // OTP State

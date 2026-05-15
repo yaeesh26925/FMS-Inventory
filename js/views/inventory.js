@@ -7,7 +7,8 @@ window.inventoryView = {
         
         container.innerHTML = `
             <div class="header-row">
-                <h1>Fuel Maintenance Inventory Management</h1>
+                <div></div>
+
                 <div style="display:flex; gap:8px;"></div>
             </div>
             
@@ -259,7 +260,9 @@ window.inventoryView = {
         const rcGroup = rcInput.parentElement;
         
         if (window.appEngine && window.appEngine.currentUser) {
-            nameInput.value = window.appEngine.currentUser.name || window.appEngine.currentUser.phone;
+            const u = window.appEngine.currentUser;
+            const displayName = u.name || u.phone || 'Admin';
+            nameInput.value = (displayName === 'undefined' || !displayName) ? 'Admin' : displayName;
             rcGroup.style.display = 'none';
             if (nameLabel) nameLabel.innerText = 'Logged in as';
         } else {

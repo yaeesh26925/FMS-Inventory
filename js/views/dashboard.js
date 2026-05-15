@@ -12,7 +12,8 @@ window.dashboardView = {
 
         container.innerHTML = `
             <div class="header-row">
-                <h1>Analytics Dashboard</h1>
+                <div></div>
+
                 <div style="display:flex; gap:8px;">
                     <button class="btn btn-secondary" onclick="dashboardView.calculateMetrics()">🔄 Refresh Data</button>
                     <button class="btn btn-back" onclick="window.appEngine.navigate('management')" style="width:auto">⬅️ Back to Management</button>

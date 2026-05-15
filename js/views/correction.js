@@ -3,11 +3,12 @@ window.correctionView = {
     render: function() {
         const container = document.getElementById('module-correction');
         const user = window.appEngine.currentUser;
-        const canEdit = user.permRestock === 'Edit';
+        const canEdit = user.userType === 'Owner' || user.permRestock === 'Edit';
         
         container.innerHTML = `
             <div class="header-row">
-                <h1>Restock Inventory</h1>
+                <div></div>
+
                 <button class="btn btn-back" onclick="window.appEngine.navigate('management')" style="width:auto">⬅️ Back to Management</button>
             </div>
             
@@ -74,7 +75,6 @@ window.correctionView = {
                     </div>
 
                     <button class="btn btn-primary mt-3" onclick="correctionView.saveCorrection()">Add to Inventory</button>
-                    <p style="margin-top:16px; font-size:12px; color:var(--text-muted); text-align:center;">Pricing modifications are locked to Google Sheets natively.</p>
                 </div>
             </div>
         `;
@@ -84,12 +84,13 @@ window.correctionView = {
 
     populateTable: function() {
         const items = window.stateManager.get('inventory');
-        const search = (document.getElementById('corr-search')?.value || '').toLowerCase();
+        const searchInput = document.getElementById('corr-search');
+        const search = (searchInput?.value || '').toLowerCase();
         
         const filtered = items.filter(item => {
-            return item.name.toLowerCase().includes(search) || 
-                   item.code.toLowerCase().includes(search) || 
-                   item.id.toLowerCase().includes(search);
+            return (item.name || '').toLowerCase().includes(search) || 
+                   (item.code || '').toLowerCase().includes(search) || 
+                   (item.id || '').toLowerCase().includes(search);
         });
 
         const tbody = document.getElementById('corr-tbody');
@@ -123,7 +124,9 @@ window.correctionView = {
         const opInput = document.getElementById('corr-operator');
         const opLabel = opInput.previousElementSibling;
         if (window.appEngine && window.appEngine.currentUser) {
-            opInput.value = window.appEngine.currentUser.username;
+            const u = window.appEngine.currentUser;
+            const displayName = u.name || u.phone || 'Admin';
+            opInput.value = (displayName === 'undefined' || !displayName) ? 'Admin' : displayName;
             opInput.readOnly = true;
             opInput.style.opacity = '0.6';
             if (opLabel) opLabel.innerText = 'Logged in as';
@@ -136,7 +139,7 @@ window.correctionView = {
         
         document.getElementById('corr-reason').value = '';
         document.getElementById('corr-qty').value = '';
-        document.getElementById('corr-location').value = item.location;
+        document.getElementById('corr-location').value = item.location || '';
         document.getElementById('corr-alert').value = item.lowStockAlert != null ? item.lowStockAlert : 10;
 
         document.getElementById('corr-modal').classList.add('active');
@@ -159,18 +162,23 @@ window.correctionView = {
 
         const items = window.stateManager.get('inventory');
         const item = items.find(i=>i.id===id);
-            if(!item) return;
+        if(!item) return;
 
-            item.quantity += qtyToAdd;
-            item.location = newLoc;
-            if(!isNaN(newAlert)) item.lowStockAlert = newAlert;
+        // Ensure we are working with numbers
+        const currentQty = parseFloat(item.quantity) || 0;
+        item.quantity = currentQty + qtyToAdd;
+        item.location = newLoc;
+        if(!isNaN(newAlert)) item.lowStockAlert = newAlert;
 
-            window.stateManager.set('inventory', items);
-            const valueAdded = qtyToAdd * (item.unitPrice || 0);
-            window.stateManager.logAudit('INVENTORY_RESTOCK', `Added ${qtyToAdd} to ${item.name} (${item.id}). New total: ${item.quantity}. Reason: ${reason}`, {name: operator}, { itemId: item.id, qty: qtyToAdd, value: valueAdded });
+        window.stateManager.set('inventory', items);
+        
+        const unitPrice = parseFloat(item.unitPrice) || 0;
+        const valueAdded = qtyToAdd * unitPrice;
+        
+        window.stateManager.logAudit('INVENTORY_RESTOCK', `Added ${qtyToAdd} to ${item.name} (${item.id}). New total: ${item.quantity}. Reason: ${reason}`, {name: operator}, { itemId: item.id, qty: qtyToAdd, value: valueAdded });
 
-            this.closeModal();
-            this.populateTable();
-            window.appEngine.showToast(`Stock added. New quantity is ${item.quantity}.`, 'success');
+        this.closeModal();
+        this.populateTable();
+        window.appEngine.showToast(`Stock added. New quantity is ${item.quantity}.`, 'success');
     }
 };

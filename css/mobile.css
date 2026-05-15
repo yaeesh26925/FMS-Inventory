@@ -22,15 +22,15 @@
 }
 
 .mobile-header .brand-sm {
+    display: flex;
+    align-items: center;
     font-family: 'Outfit', sans-serif;
     font-weight: 900;
     font-size: 18px;
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: var(--primary);
     letter-spacing: -0.04em;
 }
+
 
 .mobile-header-actions {
     display: flex;
@@ -59,69 +59,7 @@
     background: var(--nav-active);
 }
 
-/* ── BOTTOM NAV BAR ── */
-.bottom-nav {
-    display: none;
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    background: var(--sidebar-bg);
-    backdrop-filter: var(--glass-blur);
-    border-top: 1px solid var(--glass-border);
-    z-index: 900;
-    padding: 0;
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-    box-shadow: 0 -8px 32px -8px rgba(0,0,0,0.4);
-}
 
-.bottom-nav-inner {
-    display: flex;
-    align-items: stretch;
-    height: 60px;
-}
-
-.bottom-nav-item {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 3px;
-    padding: 8px 4px;
-    color: var(--text-muted);
-    text-decoration: none;
-    cursor: pointer;
-    border: none;
-    background: none;
-    transition: color 0.2s ease, background 0.2s ease;
-    -webkit-tap-highlight-color: transparent;
-    border-top: 2px solid transparent;
-    font-family: inherit;
-}
-
-.bottom-nav-item:active {
-    background: var(--nav-active);
-}
-
-.bottom-nav-item.active {
-    color: var(--primary);
-    border-top-color: var(--primary);
-    background: hsla(210, 100%, 60%, 0.05);
-}
-
-.bottom-nav-icon {
-    font-size: 20px;
-    line-height: 1;
-}
-
-.bottom-nav-label {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
-    line-height: 1;
-}
 
 /* ── MOBILE SIDEBAR (SLIDE-OVER DRAWER) ── */
 @media (max-width: 768px) {
@@ -131,22 +69,43 @@
         display: flex !important;
     }
 
-    /* Show bottom nav */
-    .bottom-nav {
-        display: flex;
-        flex-direction: column;
+
+
+    /* Sidebar slide-out for mobile */
+    .sidebar {
+        position: fixed;
+        left: -280px;
+        top: 0;
+        height: 100vh;
+        z-index: 2000;
+        transition: var(--transition);
+        display: flex !important;
+        box-shadow: 20px 0 50px rgba(0,0,0,0.5);
+    }
+    
+    .sidebar.mobile-active {
+        left: 0;
     }
 
-    /* Sidebar hidden on mobile */
-    .sidebar {
-        display: none !important;
+    .sidebar .mobile-logout-btn {
+        display: block;
+        padding: 16px;
+        margin: 16px;
+        background: var(--danger);
+        color: white;
+        border-radius: var(--radius-md);
+        font-weight: 700;
+        text-align: center;
+        border: none;
+        cursor: pointer;
     }
+
 
     /* Main workspace adjustments */
     .workspace {
         padding: 16px !important;
         padding-top: 76px !important; /* 60px header + 16px gap */
-        padding-bottom: 80px !important; /* 60px bottom nav + 20px gap */
+        padding-bottom: 20px !important;
         height: 100vh;
     }
 
@@ -264,19 +223,24 @@
     /* Management module — button grid */
     .mgmt-btn-grid {
         display: grid !important;
-        grid-template-columns: 1fr 1fr !important;
-        gap: 10px !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 12px !important;
     }
 
     .mgmt-btn-grid .btn {
         width: 100% !important;
-        font-size: 13px !important;
-        padding: 12px 10px !important;
-        border-radius: var(--radius-md) !important;
-        text-align: center;
+        font-size: 12px !important;
+        padding: 16px 12px !important;
+        border-radius: var(--radius-lg) !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        text-align: center !important;
+        gap: 8px !important;
+        height: auto !important;
         white-space: normal !important;
-        min-height: 52px;
     }
+
 
     /* Header rows */
     .header-row {
@@ -337,7 +301,7 @@
 
     /* Toast — bottom-center on mobile */
     #app-toast {
-        bottom: 80px !important;
+        bottom: 20px !important;
         right: 16px !important;
         left: 16px !important;
         right: auto !important;
@@ -416,7 +380,7 @@
     .workspace {
         padding: 12px !important;
         padding-top: 74px !important;
-        padding-bottom: 78px !important;
+        padding-bottom: 12px !important;
     }
 
     .auth-card {
@@ -463,10 +427,11 @@
     margin-bottom: 28px;
 }
 
-/* Sidebar backdrop removed since sidebar is gone */
+/* Sidebar backdrop */
 .sidebar-backdrop {
-    display: none !important;
+    display: block !important;
 }
+
 
 /* Pull to scroll indicator for tables */
 .table-scroll-hint {

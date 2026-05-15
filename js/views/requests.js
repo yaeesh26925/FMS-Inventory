@@ -7,8 +7,9 @@ window.requestsView = {
         
         container.innerHTML = `
             <div class="header-row">
-                <h1>Request Workflow</h1>
+                <div></div>
             </div>
+
             
             <div class="card">
                 <h2>Pending Requests Queue</h2>

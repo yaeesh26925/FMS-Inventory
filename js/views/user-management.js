@@ -1,7 +1,10 @@
 // views/user-management.js
 window.userManagementView = {
 
+
     // ── Renders the full users table inside the User Management tab ──────────
+
+
     renderTab: function () {
         const container = document.getElementById('um-tab-content');
         if (!container) return;

@@ -3,11 +3,12 @@ window.tasksView = {
     render: function() {
         const container = document.getElementById('module-tasks');
         const user = window.appEngine.currentUser;
-        const canEdit = user.permTasks === 'Edit';
+        const canEdit = user.userType === 'Owner' || user.permTasks === 'Edit';
 
         container.innerHTML = `
             <div class="header-row">
-                <h1>📋 Pending Work</h1>
+                <div></div>
+
                 <button class="btn btn-back" onclick="window.appEngine.navigate('management')" style="width:auto">⬅️ Back to Management</button>
             </div>
             <p style="color:var(--text-muted); margin-bottom:24px; font-size:13px;">Track your outstanding tasks. Tasks are synced with Google Sheets.</p>
@@ -82,7 +83,7 @@ window.tasksView = {
         }
 
         const user = window.appEngine.currentUser;
-        const canEdit = user.permTasks === 'Edit';
+        const canEdit = user.userType === 'Owner' || user.permTasks === 'Edit';
 
         container.innerHTML = tasks.map(task => {
             const doneStyle = task.completed ? 'text-decoration:line-through; opacity:0.55;' : '';
@@ -171,11 +172,24 @@ window.tasksView = {
     },
 
     deleteTask: function(id) {
-        if (!confirm('Delete this task?')) return;
-        let tasks = window.stateManager.get('tasks');
-        tasks = tasks.filter(t => t.id !== id);
-        window.stateManager.set('tasks', tasks);
-        this.renderList();
-        window.appEngine.showToast('Task deleted.', 'warning');
+        if (!confirm('Are you sure you want to delete this task?')) return;
+        
+        try {
+            let tasks = window.stateManager.get('tasks');
+            const initialCount = tasks.length;
+            tasks = tasks.filter(t => String(t.id) !== String(id));
+            
+            if (tasks.length === initialCount) {
+                console.warn('Task not found for deletion:', id);
+                return;
+            }
+
+            window.stateManager.set('tasks', tasks);
+            this.renderList();
+            window.appEngine.showToast('Task deleted successfully.', 'warning');
+        } catch (err) {
+            console.error('Error deleting task:', err);
+            window.appEngine.showToast('Failed to delete task.', 'danger');
+        }
     }
 };

@@ -154,7 +154,11 @@ class StateManager {
         } else {
             localStorage.setItem(key, JSON.stringify(data));
         }
+
+        // Trigger global update
+        window.dispatchEvent(new CustomEvent('state-changed', { detail: { key, data } }));
     }
+
 
     logAudit(action, details, user, meta = {}) {
         const audit = this.get('audit');
@@ -198,10 +202,11 @@ class StateManager {
             setTimeout(() => {
                 const fakeUrl = 'https://example.com/fake-pdf-url.pdf';
                 const pos = this.get('purchaseOrders');
-                const po = pos.find(p => p.prNumber === prNumber);
+                const po = pos.find(p => p['PR NO'] === prNumber);
                 if (po) po.pdfUrl = fakeUrl;
                 this.set('purchaseOrders', pos);
                 if (callback) callback(fakeUrl);
+
             }, 800);
         };
         reader.readAsDataURL(file);

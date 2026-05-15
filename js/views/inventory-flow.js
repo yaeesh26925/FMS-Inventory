@@ -13,7 +13,8 @@ window['inventory-flowView'] = {
 
         let html = `
             <div class="header-row">
-                <h1>Inventory Flow Control</h1>
+                <div></div>
+
                 <button class="btn btn-back" onclick="window.appEngine.navigate('management')" style="width:auto">⬅️ Back to Management</button>
             </div>
             
