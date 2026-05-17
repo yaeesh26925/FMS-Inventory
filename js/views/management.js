@@ -37,6 +37,7 @@ window.managementView = {
                     ${hasPerm('permWorkPurposes') ? `<div class="mgt-tab-btn" id="mgt-tab-btn-purposes" onclick="managementView.switchTab('purposes')" style="padding:12px 4px; cursor:pointer; font-weight:700; color:var(--primary); border-bottom:2px solid var(--primary);">⚙️ Work Purposes</div>` : ''}
                     ${hasPerm('permAuditLog') ? `<div class="mgt-tab-btn" id="mgt-tab-btn-audit" onclick="managementView.switchTab('audit')" style="padding:12px 4px; cursor:pointer; font-weight:700; color:var(--text-muted);">📜 Audit Log</div>` : ''}
                     ${hasPerm('permUserManagement') ? `<div class="mgt-tab-btn" id="mgt-tab-btn-users" onclick="managementView.switchTab('users')" style="padding:12px 4px; cursor:pointer; font-weight:700; color:var(--text-muted);">👥 User Management</div>` : ''}
+                    ${user.userType === 'Owner' ? `<div class="mgt-tab-btn" id="mgt-tab-btn-approvals" onclick="managementView.switchTab('approvals')" style="padding:12px 4px; cursor:pointer; font-weight:700; color:var(--text-muted);">🛡️ Owner Approvals</div>` : ''}
                 </div>
 
                 <div id="mgt-tab-purposes" class="mgt-tab-content">
@@ -77,6 +78,30 @@ window.managementView = {
 
                 <div id="mgt-tab-users" class="mgt-tab-content" style="display:none;">
                     <div id="um-tab-content"></div>
+                </div>
+
+                <div id="mgt-tab-approvals" class="mgt-tab-content" style="display:none;">
+                    <h3>🛡️ Owner Approvals (Live Dashboard)</h3>
+                    <p style="color:var(--text-muted); font-size:13px; margin-bottom:20px;">Review and approve the financial changes for requests that have been physically fulfilled by admins.</p>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Request ID</th>
+                                    <th>Fulfillment Admin</th>
+                                    <th>Requester</th>
+                                    <th>Item</th>
+                                    <th>Quantity</th>
+                                    <th>Unit Price</th>
+                                    <th>Total Financial Cost</th>
+                                    <th>Work Purpose</th>
+                                    <th>Date Approved</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="mgt-approvals-tbody"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
@@ -174,14 +199,16 @@ window.managementView = {
         }
 
         // Show/hide tab panels
-        ['purposes', 'audit', 'users'].forEach(t => {
+        ['purposes', 'audit', 'users', 'approvals'].forEach(t => {
             const el = document.getElementById('mgt-tab-' + t);
             if (el) el.style.display = (t === tab) ? 'block' : 'none';
         });
 
-        // Lazy-render User Management tab
+        // Lazy-render User Management or Approvals tab
         if (tab === 'users' && window.userManagementView) {
             window.userManagementView.renderTab();
+        } else if (tab === 'approvals') {
+            this.populateApprovals();
         }
     },
 
@@ -227,6 +254,83 @@ window.managementView = {
         window.stateManager.set('purposes', purposes);
         this.populatePurposesList();
         window.appEngine.showToast(`"${purpose}" removed.`, 'warning');
+    },
+
+    populateApprovals: function() {
+        const tbody = document.getElementById('mgt-approvals-tbody');
+        if (!tbody) return;
+
+        const requests = window.stateManager.get('requests') || [];
+        const items = window.stateManager.get('inventory') || [];
+        
+        const pendingApprovals = requests.filter(r => r.status === 'PENDING_OWNER_APPROVAL');
+
+        if (pendingApprovals.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="10" style="text-align:center; padding:32px; color:var(--text-muted);">
+                        🎉 No requests currently pending Owner financial approval.
+                    </td>
+                </tr>`;
+            return;
+        }
+
+        tbody.innerHTML = pendingApprovals.map(req => {
+            const item = items.find(i => i.id === req.itemId);
+            const itemName = item ? item.name : 'Unknown Item';
+            const unitPrice = item ? item.unitPrice : 0;
+            const totalCost = req.qty * unitPrice;
+            const shortId = req.id.substr(0, 8);
+            const approvedDate = req.claimedAt ? new Date(req.claimedAt).toLocaleString() : 'N/A';
+
+            return `
+                <tr>
+                    <td style="font-size:12px; color:var(--text-muted)">${shortId}</td>
+                    <td><strong>${req.actionedBy || 'Admin'}</strong></td>
+                    <td>${req.userName || req.username}</td>
+                    <td><strong>${itemName}</strong></td>
+                    <td>${req.qty}</td>
+                    <td>$${unitPrice.toLocaleString(undefined, {minimumFractionDigits:2})}</td>
+                    <td style="color:var(--success); font-weight:bold;">$${totalCost.toLocaleString(undefined, {minimumFractionDigits:2})}</td>
+                    <td><span class="badge" style="background:var(--primary); color:white">${req.purpose}</span></td>
+                    <td style="font-size:12px; color:var(--text-muted)">${approvedDate}</td>
+                    <td>
+                        <button class="btn btn-sm btn-success" style="font-size:11px; padding:6px 12px; width:auto;" onclick="managementView.approveOwnerFinancials('${req.id}')">🛡️ Approve Financials</button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    },
+
+    approveOwnerFinancials: function(reqId) {
+        const requests = window.stateManager.get('requests') || [];
+        const req = requests.find(r => r.id === reqId);
+        if (!req) return;
+
+        req.status = 'CLAIMED';
+        req.ownerApprovedAt = new Date().toISOString();
+        req.financialApprovedBy = window.appEngine.currentUser.name || window.appEngine.currentUser.phone;
+
+        window.stateManager.set('requests', requests);
+
+        const items = window.stateManager.get('inventory') || [];
+        const item = items.find(i => i.id === req.itemId);
+        const itemName = item ? item.name : 'Unknown Item';
+        const unitPrice = item ? item.unitPrice : 0;
+        const totalCost = req.qty * unitPrice;
+
+        window.stateManager.logAudit(
+            'REQUEST_FINANCIALS_APPROVED',
+            `Owner approved financials for request ${reqId.substr(0,8)} of ${req.qty}x ${itemName} (Value: $${totalCost.toFixed(2)}).`,
+            { name: window.appEngine.currentUser.name || window.appEngine.currentUser.phone },
+            { itemId: req.itemId, qty: req.qty, value: totalCost }
+        );
+
+        window.appEngine.showToast('Financial changes approved successfully!', 'success');
+        this.populateApprovals();
+        if (window.financialsView) window.financialsView.render();
+        if (window.reportsView) window.reportsView.updateStats();
+        if (window.inventoryFlowView) window.inventoryFlowView.render();
     },
 
     populateAudit: function() {

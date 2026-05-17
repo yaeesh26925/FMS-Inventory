@@ -101,6 +101,7 @@ window.requestsView = {
             else if(req.status === 'APPROVED') badge = '<span class="status status-green">Approved</span>';
             else if(req.status === 'REJECTED') badge = '<span class="status status-red">Rejected</span>';
             else if(req.status === 'CLAIMED') badge = '<span class="status" style="background:var(--primary); color:white; border:none; box-shadow:var(--shadow-glow)">Claimed (Done)</span>';
+            else if(req.status === 'PENDING_OWNER_APPROVAL') badge = '<span class="status" style="background:var(--secondary); color:white; border:none;">Admin Approved (Pending Owner Financials)</span>';
 
 
             let actions = '<span style="color:var(--text-muted)">—</span>';
@@ -162,7 +163,7 @@ window.requestsView = {
             opEl.value = '';
             opEl.readOnly = false;
             opEl.style.opacity = '1';
-            if (opLabel) opLabel.innerText = 'Your Name (for Audit Log)';
+            if (opLabel) opLabel.innerText = 'Admin Name logging this item';
         }
 
         document.getElementById('req-action-modal').classList.add('active');
@@ -216,21 +217,42 @@ window.requestsView = {
         inv.quantity -= useQty;
         const oldQty = req.qty;
         req.qty = useQty; 
-        req.status    = 'CLAIMED';
-        req.claimedAt = new Date().toISOString();
         req.actionedBy = opName;
 
-        window.stateManager.set('inventory', items);
-        window.stateManager.set('requests', requests);
-        
-        const details = oldQty !== useQty ? 
-            `Approved and fulfilled modified quantity ${useQty}x (was ${oldQty}x) for request ${id.substr(0,8)}.` :
-            `Approved and fulfilled ${useQty}x for request ${id.substr(0,8)}.`;
+        const currentUser = window.appEngine && window.appEngine.currentUser;
+        const isOwner = currentUser && currentUser.userType === 'Owner';
+
+        if (isOwner) {
+            req.status    = 'CLAIMED';
+            req.claimedAt = new Date().toISOString();
+            req.ownerApprovedAt = new Date().toISOString();
+
+            window.stateManager.set('inventory', items);
+            window.stateManager.set('requests', requests);
             
-        window.stateManager.logAudit('REQUEST_FULFILLED', details, {name: opName}, { itemId: req.itemId, qty: useQty });
+            const details = oldQty !== useQty ? 
+                `Approved and fulfilled modified quantity ${useQty}x (was ${oldQty}x) for request ${id.substr(0,8)}.` :
+                `Approved and fulfilled ${useQty}x for request ${id.substr(0,8)}.`;
+                
+            window.stateManager.logAudit('REQUEST_FULFILLED', details, {name: opName}, { itemId: req.itemId, qty: useQty });
+            window.appEngine.showToast('Request approved and stock deducted immediately.', 'success');
+        } else {
+            req.status    = 'PENDING_OWNER_APPROVAL';
+            req.claimedAt = new Date().toISOString();
+
+            window.stateManager.set('inventory', items);
+            window.stateManager.set('requests', requests);
+            
+            const details = oldQty !== useQty ? 
+                `Admin approved modified quantity ${useQty}x (was ${oldQty}x) for request ${id.substr(0,8)}. Pending Owner financial approval.` :
+                `Admin approved ${useQty}x for request ${id.substr(0,8)}. Pending Owner financial approval.`;
+                
+            window.stateManager.logAudit('REQUEST_ADMIN_APPROVED', details, {name: opName}, { itemId: req.itemId, qty: useQty });
+            window.appEngine.showToast('Request approved and stock deducted. Pending Owner financial approval.', 'success');
+        }
+
         this.populateTable();
         if (window.inventoryView) window.inventoryView.populateTable();
-        window.appEngine.showToast('Request approved and stock deducted.', 'success');
     },
 
     _doReject: function(id, opName) {

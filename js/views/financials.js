@@ -5,8 +5,18 @@ window.financialsView = {
         const isAdmin = !!(window.appEngine && window.appEngine.currentUser);
         
         const items = window.stateManager.get('inventory');
+        const requests = window.stateManager.get('requests') || [];
+        const getPendingQty = (itemId) => {
+            return requests
+                .filter(r => r.itemId === itemId && r.status === 'PENDING_OWNER_APPROVAL')
+                .reduce((sum, r) => sum + r.qty, 0);
+        };
+
         let totalValue = 0;
-        items.forEach(i => { totalValue += i.quantity * i.unitPrice; });
+        items.forEach(i => { 
+            const finQty = i.quantity + getPendingQty(i.id);
+            totalValue += finQty * i.unitPrice; 
+        });
 
         const getStatus = (item) => {
             const threshold = item.lowStockAlert != null ? item.lowStockAlert : 10;
@@ -186,9 +196,17 @@ window.financialsView = {
             colFilters[input.dataset.col] = (input.value || '').toLowerCase();
         });
 
+        const requests = window.stateManager.get('requests') || [];
+        const getPendingQty = (itemId) => {
+            return requests
+                .filter(r => r.itemId === itemId && r.status === 'PENDING_OWNER_APPROVAL')
+                .reduce((sum, r) => sum + r.qty, 0);
+        };
+
         const filtered = items.filter(item => {
             const status = getStatus(item);
-            const totalPrice = item.quantity * item.unitPrice;
+            const finQty = item.quantity + getPendingQty(item.id);
+            const totalPrice = finQty * item.unitPrice;
 
             // Global search — includes ALL fields including gnsCode and description
             const searchFields = [
@@ -214,7 +232,7 @@ window.financialsView = {
                 code: item.code,
                 gnsCode: item.gnsCode || '',
                 location: item.location || '',
-                quantity: String(item.quantity) + ' ' + (item.unit || ''),
+                quantity: String(item.quantity) + ' ' + (item.unit || '') + (getPendingQty(item.id) > 0 ? ` (${getPendingQty(item.id)} pending)` : ''),
                 status: status,
                 unitPrice: item.unitPrice.toFixed(2),
                 totalValue: totalPrice.toFixed(2)
@@ -236,11 +254,18 @@ window.financialsView = {
             filtered.sort((a, b) => b.id.localeCompare(a.id, undefined, {numeric: true, sensitivity: 'base'}));
         } else {
             // Default sort: highest total value first
-            filtered.sort((a,b) => (b.quantity*b.unitPrice)-(a.quantity*a.unitPrice));
+            filtered.sort((a,b) => {
+                const aQty = a.quantity + getPendingQty(a.id);
+                const bQty = b.quantity + getPendingQty(b.id);
+                return (bQty * b.unitPrice) - (aQty * a.unitPrice);
+            });
         }
 
         // Update filtered value card
-        const filteredTotal = filtered.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+        const filteredTotal = filtered.reduce((sum, item) => {
+            const finQty = item.quantity + getPendingQty(item.id);
+            return sum + finQty * item.unitPrice;
+        }, 0);
         const filteredCard = document.getElementById('fin-filtered-value');
         if (filteredCard) filteredCard.innerText = '$' + filteredTotal.toLocaleString(undefined, {minimumFractionDigits:2});
 
@@ -248,7 +273,9 @@ window.financialsView = {
         if(!tbody) return;
 
         tbody.innerHTML = filtered.map(item => {
-            const totalPrice = item.quantity * item.unitPrice;
+            const pendingQty = getPendingQty(item.id);
+            const finQty = item.quantity + pendingQty;
+            const totalPrice = finQty * item.unitPrice;
             const status = getStatus(item);
             let statusBadge = '<span class="status status-green">In Stock</span>';
             if (status === 'Out of Stock') statusBadge = '<span class="status status-red">Out of Stock</span>';
@@ -262,7 +289,10 @@ window.financialsView = {
                     <td>${item.code}</td>
                     ${isAdmin ? `<td style="color:var(--primary); font-weight:600;">${item.gnsCode || '-'}</td>` : ''}
                     <td>${item.location}</td>
-                    <td style="font-weight:bold; color:${item.quantity===0?'var(--danger)':'inherit'}">${item.quantity} ${item.unit||''}</td>
+                    <td style="font-weight:bold; color:${item.quantity===0?'var(--danger)':'inherit'}">
+                        ${item.quantity} ${item.unit||''}
+                        ${pendingQty > 0 ? `<br><span style="font-size:10px; color:var(--warning); font-weight:normal;">(${pendingQty} pending owner approval)</span>` : ''}
+                    </td>
                     <td>${statusBadge}</td>
                     <td>$${item.unitPrice.toLocaleString(undefined, {minimumFractionDigits:2})}</td>
                     <td style="color:var(--primary); font-weight:bold;">$${totalPrice.toLocaleString(undefined, {minimumFractionDigits:2})}</td>
