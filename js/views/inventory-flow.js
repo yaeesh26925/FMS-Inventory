@@ -9,7 +9,7 @@ window['inventory-flowView'] = {
         const items = window.stateManager.get('inventory');
 
         // Admins with access to approve requests
-        const approverAdmins = users.filter(u => (u.userType === 'Admin' || u.userType === 'Owner') && u.requestPerm === 'Edit');
+        const approverAdmins = users.filter(u => (['System Admin', 'Admin', 'Owner'].includes(u.userType)) && u.requestPerm === 'Edit');
 
         let html = `
             <div class="header-row">

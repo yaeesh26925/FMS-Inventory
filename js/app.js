@@ -196,7 +196,7 @@ class AppEngine {
         const user = this.currentUser;
         if (!user) return;
         
-        const isAdmin = user.userType === 'Admin' || user.userType === 'Owner';
+        const isAdmin = ['Admin', 'Owner', 'System Admin'].includes(user.userType);
         const toggleNav = (id, visible) => {
             const el = document.getElementById('nav-' + id);
             if (el) el.style.display = visible ? 'block' : 'none';
@@ -206,8 +206,6 @@ class AppEngine {
         toggleNav('inventory', true);
         toggleNav('requests', true);
         toggleNav('management', isAdmin);
-
-
     }
 
     navigate(moduleName) {
@@ -217,7 +215,7 @@ class AppEngine {
             return;
         }
 
-        const isAdmin = user.userType === 'Admin' || user.userType === 'Owner';
+        const isAdmin = ['Admin', 'Owner', 'System Admin'].includes(user.userType);
         const publicModules = ['inventory', 'requests'];
         
         if (!publicModules.includes(moduleName)) {
@@ -235,16 +233,19 @@ class AppEngine {
                 'reports': 'permReports',
                 'purposes': 'permWorkPurposes',
                 'audit': 'permAuditLog',
-                'users': 'userType'
+                'users': 'permUserManagement',
+                'inventory-flow': 'permInventoryFlow'
             };
 
-
-
             const permKey = permMap[moduleName];
-            if (user.userType !== 'Owner' && permKey && (user[permKey] === 'Non' || !user[permKey])) {
-                alert('Access Denied. You do not have permission for this module.');
-                this.navigate('management');
-                return;
+            if (user.userType !== 'Owner' && permKey) {
+                const val = user[permKey];
+                const isBlocked = (user.userType === 'System Admin') ? val === 'Non' : (val === 'Non' || !val);
+                if (isBlocked) {
+                    alert('Access Denied. You do not have permission for this module.');
+                    this.navigate('management');
+                    return;
+                }
             }
         }
 

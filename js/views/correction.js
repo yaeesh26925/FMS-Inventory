@@ -3,7 +3,7 @@ window.correctionView = {
     render: function() {
         const container = document.getElementById('module-correction');
         const user = window.appEngine.currentUser;
-        const canEdit = user.userType === 'Owner' || user.permRestock === 'Edit';
+        const canEdit = user.userType === 'Owner' || (['System Admin', 'Admin'].includes(user.userType) && user.permRestock === 'Edit');
         
         container.innerHTML = `
             <div class="header-row">

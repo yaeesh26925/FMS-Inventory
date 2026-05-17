@@ -9,7 +9,7 @@ window.reportsView = {
         const formatDate = (date) => date.toISOString().split('T')[0];
 
         const user = window.appEngine.currentUser;
-        const canEdit = user.userType === 'Owner' || user.permReports === 'Edit';
+        const canEdit = user.userType === 'Owner' || (['System Admin', 'Admin'].includes(user.userType) && user.permReports === 'Edit');
 
         container.innerHTML = `
             <div class="header-row">

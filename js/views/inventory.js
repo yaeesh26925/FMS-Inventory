@@ -3,7 +3,7 @@ window.inventoryView = {
     render: function() {
         const container = document.getElementById('module-inventory');
         const user = window.appEngine.currentUser;
-        const isAdmin = user && (user.userType === 'Admin' || user.userType === 'Owner');
+        const isAdmin = user && ['Admin', 'Owner', 'System Admin'].includes(user.userType);
         
         container.innerHTML = `
             <div class="header-row">
@@ -142,7 +142,7 @@ window.inventoryView = {
 
     populateTable: function() {
         const user = window.appEngine.currentUser;
-        const isAdmin = user && (user.userType === 'Admin' || user.userType === 'Owner');
+        const isAdmin = user && ['Admin', 'Owner', 'System Admin'].includes(user.userType);
         const items = window.stateManager.get('inventory');
         const search = (document.getElementById('inv-search')?.value || '').toLowerCase();
         const statusFilter = document.getElementById('inv-status-filter')?.value || 'All';
@@ -276,9 +276,9 @@ window.inventoryView = {
         const user = window.appEngine.currentUser;
         if (!user) return;
 
-        // Owners can take immediately; Admins need permTakeImmediately; Standard needs requestPerm
+        // Owners can take immediately; Admins and System Admins need permTakeImmediately === 'Edit'; Standard needs requestPerm === 'Edit'
         const canTake = (user.userType === 'Owner') || 
-                        (user.userType === 'Admin' && user.permTakeImmediately === 'Edit') || 
+                        (['System Admin', 'Admin'].includes(user.userType) && user.permTakeImmediately === 'Edit') || 
                         (user.userType === 'Standard' && user.requestPerm === 'Edit');
         
         if (!user || !canTake) {

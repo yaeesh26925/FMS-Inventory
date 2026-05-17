@@ -71,7 +71,7 @@ window.requestsView = {
         let visibleRequests = requests;
         
         // Data Visibility Rules
-        const isAdmin = currentUser.userType === 'Admin' || currentUser.userType === 'Owner';
+        const isAdmin = ['Admin', 'Owner', 'System Admin'].includes(currentUser.userType);
         if (!isAdmin) {
             visibleRequests = requests.filter(r => 
                 (r.userName || r.username) === currentUser.name || 
@@ -104,8 +104,8 @@ window.requestsView = {
 
 
             let actions = '<span style="color:var(--text-muted)">—</span>';
-            // Owners can always approve/reject; Admins need permTakeImmediately === 'Edit'
-            const canEdit = currentUser.userType === 'Owner' || (currentUser.userType === 'Admin' && currentUser.permTakeImmediately === 'Edit');
+            // Owners can always approve/reject; Admins and System Admins need permTakeImmediately === 'Edit'
+            const canEdit = currentUser.userType === 'Owner' || (['System Admin', 'Admin'].includes(currentUser.userType) && currentUser.permTakeImmediately === 'Edit');
 
             if (req.status === 'PENDING' && canEdit) {
                 actions = `

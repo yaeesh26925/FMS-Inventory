@@ -4,7 +4,7 @@ window.managementView = {
     render: function() {
         const container = document.getElementById('module-management');
         const user = window.appEngine.currentUser;
-        const canAdd = user.userType === 'Owner' || (user.userType === 'Admin' && user.permRestock === 'Edit') || user.permAddItem === 'Edit';
+        const canAdd = user.userType === 'Owner' || (['System Admin', 'Admin'].includes(user.userType) && user.permRestock === 'Edit') || user.permAddItem === 'Edit';
         
         const hasPerm = (key) => {
             if (user.userType === 'Owner') return true;
@@ -28,7 +28,7 @@ window.managementView = {
                 ${hasPerm('permAnalytics') ? `<button class="btn btn-primary" onclick="window.appEngine.navigate('dashboard')">📊 Analytics</button>` : ''}
                 ${hasPerm('permTasks') ? `<button class="btn btn-primary" onclick="window.appEngine.navigate('tasks')">📋 Pending Work</button>` : ''}
                 ${hasPerm('permReports') ? `<button class="btn btn-primary" onclick="window.appEngine.navigate('reports')">📜 Reports</button>` : ''}
-                ${user.userType === 'Owner' ? `<button class="btn btn-primary" onclick="window.appEngine.navigate('inventory-flow')" style="background-color: var(--secondary); border-color: var(--secondary); color: white;">🌊 Inv. Flow</button>` : ''}
+                ${hasPerm('permInventoryFlow') ? `<button class="btn btn-primary" onclick="window.appEngine.navigate('inventory-flow')" style="background-color: var(--secondary); border-color: var(--secondary); color: white;">🌊 Inv. Flow</button>` : ''}
             </div>
 
             <!-- Management Tabs Panel -->
@@ -36,13 +36,13 @@ window.managementView = {
                 <div class="mgt-tabs-row" style="display:flex; gap:24px; border-bottom:1px solid var(--glass-border); margin-bottom:24px;">
                     ${hasPerm('permWorkPurposes') ? `<div class="mgt-tab-btn" id="mgt-tab-btn-purposes" onclick="managementView.switchTab('purposes')" style="padding:12px 4px; cursor:pointer; font-weight:700; color:var(--primary); border-bottom:2px solid var(--primary);">⚙️ Work Purposes</div>` : ''}
                     ${hasPerm('permAuditLog') ? `<div class="mgt-tab-btn" id="mgt-tab-btn-audit" onclick="managementView.switchTab('audit')" style="padding:12px 4px; cursor:pointer; font-weight:700; color:var(--text-muted);">📜 Audit Log</div>` : ''}
-                    ${user.userType === 'Owner' ? `<div class="mgt-tab-btn" id="mgt-tab-btn-users" onclick="managementView.switchTab('users')" style="padding:12px 4px; cursor:pointer; font-weight:700; color:var(--text-muted);">👥 User Management</div>` : ''}
+                    ${hasPerm('permUserManagement') ? `<div class="mgt-tab-btn" id="mgt-tab-btn-users" onclick="managementView.switchTab('users')" style="padding:12px 4px; cursor:pointer; font-weight:700; color:var(--text-muted);">👥 User Management</div>` : ''}
                 </div>
 
                 <div id="mgt-tab-purposes" class="mgt-tab-content">
                     <h3>Manage Work Purposes</h3>
                     <p style="color:var(--text-muted); font-size:13px; margin-bottom:20px;">These purposes appear in the inventory request forms.</p>
-                    ${(user.userType === 'Owner' || user.permWorkPurposes === 'Edit') ? `
+                    ${(user.userType === 'Owner' || (['System Admin', 'Admin'].includes(user.userType) && user.permWorkPurposes === 'Edit')) ? `
                     <div style="display:flex; gap:12px; margin-bottom:24px; flex-wrap:wrap;">
                         <input type="text" id="mgt-new-purpose" placeholder="e.g. Corrective Maintenance" style="flex:1; min-width:260px; padding:12px; border-radius:var(--radius-md); border:1px solid var(--glass-border); background:hsla(0,0%,100%,0.05); color:var(--text-main);">
                         <button class="btn btn-primary" onclick="managementView.addPurpose()" style="width:auto">➕ Add Purpose</button>
@@ -189,7 +189,7 @@ window.managementView = {
         const list = document.getElementById('mgt-purposes-list');
         if (!list) return;
         const user = window.appEngine.currentUser;
-        const canEdit = user.userType === 'Owner' || user.permWorkPurposes === 'Edit';
+        const canEdit = user.userType === 'Owner' || (['System Admin', 'Admin'].includes(user.userType) && user.permWorkPurposes === 'Edit');
         const purposes = window.stateManager.get('purposes').filter(p => p !== 'Other (Manual)');
         if (purposes.length === 0) {
             list.innerHTML = '<span style="color:var(--text-muted); font-size:13px;">No custom purposes yet. Add one above.</span>';
@@ -205,7 +205,7 @@ window.managementView = {
 
     addPurpose: function() {
         const user = window.appEngine.currentUser;
-        if (user.userType !== 'Owner' && user.permWorkPurposes !== 'Edit') {
+        if (user.userType !== 'Owner' && !(['System Admin', 'Admin'].includes(user.userType) && user.permWorkPurposes === 'Edit')) {
             window.appEngine.showToast('Access Denied. You do not have permission to modify purposes.', 'danger');
             return;
         }

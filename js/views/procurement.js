@@ -6,7 +6,7 @@ window.procurementView = {
         const container = document.getElementById('module-procurement');
 
         const user = window.appEngine.currentUser;
-        const canEdit = user.userType === 'Owner' || user.permProcurement === 'Edit';
+        const canEdit = user.userType === 'Owner' || (['System Admin', 'Admin'].includes(user.userType) && user.permProcurement === 'Edit');
 
         container.innerHTML = `
             <div class="header-row">
@@ -380,7 +380,7 @@ window.procurementView = {
             const poStatusBadge    = this.statusBadge(poStatus);
 
             const user = window.appEngine.currentUser;
-            const canEdit = user.userType === 'Owner' || user.permProcurement === 'Edit';
+            const canEdit = user.userType === 'Owner' || (['System Admin', 'Admin'].includes(user.userType) && user.permProcurement === 'Edit');
 
 
             let attachmentHtml = '-';

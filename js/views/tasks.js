@@ -3,7 +3,7 @@ window.tasksView = {
     render: function() {
         const container = document.getElementById('module-tasks');
         const user = window.appEngine.currentUser;
-        const canEdit = user.userType === 'Owner' || user.permTasks === 'Edit';
+        const canEdit = user.userType === 'Owner' || (['System Admin', 'Admin'].includes(user.userType) && user.permTasks === 'Edit');
 
         container.innerHTML = `
             <div class="header-row">
@@ -83,7 +83,7 @@ window.tasksView = {
         }
 
         const user = window.appEngine.currentUser;
-        const canEdit = user.userType === 'Owner' || user.permTasks === 'Edit';
+        const canEdit = user.userType === 'Owner' || (['System Admin', 'Admin'].includes(user.userType) && user.permTasks === 'Edit');
 
         container.innerHTML = tasks.map(task => {
             const doneStyle = task.completed ? 'text-decoration:line-through; opacity:0.55;' : '';

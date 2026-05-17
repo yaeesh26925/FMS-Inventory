@@ -127,6 +127,9 @@ class StateManager {
                     await this._firestoreSet(key, value);
                 }
                 this.cache[key] = value;
+                
+                // Hook up the realtime listener for this key
+                this._setupRealtimeListener(key);
             });
 
             await Promise.all(promises);
@@ -138,6 +141,84 @@ class StateManager {
         }
 
         if (allLoaded && callback) callback();
+    }
+
+    _setupRealtimeListener(key) {
+        if (!this._firestoreReady || !this.db) return;
+        
+        if (!this._listeners) {
+            this._listeners = {};
+        }
+        
+        // Avoid duplicate listeners
+        if (this._listeners[key]) return;
+
+        console.log(`Setting up Firestore realtime listener for [${key}]`);
+        try {
+            this._listeners[key] = this._docRef(key).onSnapshot((doc) => {
+                if (doc.exists) {
+                    const newValue = doc.data().value || [];
+                    
+                    // Compare changes to prevent redundant updates
+                    const oldStr = JSON.stringify(this.cache[key] || []);
+                    const newStr = JSON.stringify(newValue);
+                    
+                    if (oldStr !== newStr) {
+                        console.log(`[Realtime Update] Data changed in Firestore for [${key}]`);
+                        
+                        // Intelligent live request detection & notification
+                        if (key === 'requests') {
+                            const oldRequests = this.cache[key] || [];
+                            const newRequests = newValue || [];
+                            
+                            if (newRequests.length > oldRequests.length) {
+                                const added = newRequests.filter(nr => !oldRequests.some(or => or.id === nr.id));
+                                added.forEach(req => {
+                                    const user = window.appEngine && window.appEngine.currentUser;
+                                    if (user) {
+                                        const isOwner = user.userType === 'Owner';
+                                        const isSysAdmin = user.userType === 'System Admin';
+                                        const isAdmin = user.userType === 'Admin';
+                                        const isPermittedAdmin = isAdmin && user.requestPerm === 'Edit';
+                                        
+                                        if (isOwner || isSysAdmin || isPermittedAdmin) {
+                                            if (window.appEngine) {
+                                                const shortId = (req.id || '').substr(0, 8);
+                                                window.appEngine.showToast(`🔔 New Request: ${req.userName || req.username} requested ${req.qty}x item(s) (REQ-${shortId})`, 'info');
+                                                
+                                                // Beep sound alert
+                                                try {
+                                                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                                                    const osc = audioContext.createOscillator();
+                                                    const gain = audioContext.createGain();
+                                                    osc.connect(gain);
+                                                    gain.connect(audioContext.destination);
+                                                    osc.frequency.setValueAtTime(587.33, audioContext.currentTime); // D5
+                                                    gain.gain.setValueAtTime(0.1, audioContext.currentTime);
+                                                    osc.start();
+                                                    osc.stop(audioContext.currentTime + 0.18);
+                                                } catch (audioErr) {
+                                                    console.warn('Audio Context tone could not play:', audioErr);
+                                                }
+                                            }
+                                        }
+                                    }
+                                });
+                            }
+                        }
+
+                        this.cache[key] = newValue;
+                        
+                        // Dispatch global state-changed event to reactive-render active view
+                        window.dispatchEvent(new CustomEvent('state-changed', { detail: { key, data: newValue } }));
+                    }
+                }
+            }, (err) => {
+                console.error(`Realtime listener error for [${key}]:`, err);
+            });
+        } catch (listenerErr) {
+            console.error(`Failed to hook Firestore onSnapshot for [${key}]:`, listenerErr);
+        }
     }
 
     // ─── Public API ────────────────────────────────────────────────────────────

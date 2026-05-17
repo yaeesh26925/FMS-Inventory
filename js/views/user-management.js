@@ -12,21 +12,21 @@ window.userManagementView = {
         const users = window.stateManager.get('users');
         const currentUser = window.appEngine.currentUser;
 
-        const roleColor = { Owner: '#f59e0b', Admin: '#6366f1', Standard: '#22c55e' };
+        const roleColor = { Owner: '#f59e0b', Admin: '#6366f1', Standard: '#22c55e', 'System Admin': '#ef4444' };
         const permLabel = { Non: '✕', View: '👁', Edit: '✏️' };
 
         const rows = users.map(u => {
             const isCurrentUser = u.phone === currentUser.phone;
             const role = u.userType || 'Standard';
             const rc = badge => `<span style="font-family:monospace; font-size:12px; background:hsla(0,0%,100%,0.07); padding:2px 8px; border-radius:4px;">${badge}</span>`;
-            const perms = ['permRestock', 'permProcurement', 'permDetailedInfo', 'permAnalytics', 'permTasks', 'permReports', 'permTakeImmediately', 'permWorkPurposes'];
+            const perms = ['permRestock', 'permProcurement', 'permDetailedInfo', 'permAnalytics', 'permTasks', 'permReports', 'permTakeImmediately', 'permWorkPurposes', 'permUserManagement', 'permInventoryFlow'];
             const permIcons = perms.map(p => {
                 const val = u[p] || 'Non';
-                const tip = { permRestock: '📦', permProcurement: '🏢', permDetailedInfo: '📋', permAnalytics: '📊', permTasks: '✅', permReports: '📜', permTakeImmediately: '⚡', permWorkPurposes: '⚙️' }[p];
+                const tip = { permRestock: '📦', permProcurement: '🏢', permDetailedInfo: '📋', permAnalytics: '📊', permTasks: '✅', permReports: '📜', permTakeImmediately: '⚡', permWorkPurposes: '⚙️', permUserManagement: '👥', permInventoryFlow: '🌊' }[p];
                 return `<span title="${p.replace('perm', '')} — ${val}" style="font-size:12px; opacity:${val === 'Non' ? 0.3 : 1};">${tip}${permLabel[val] || '✕'}</span>`;
             }).join(' ');
 
-            const guard = isCurrentUser ? 'disabled title="Cannot modify yourself"' : '';
+            const guard = (isCurrentUser && currentUser.userType !== 'System Admin') ? 'disabled title="Cannot modify yourself"' : '';
 
             return `
             <tr>
@@ -62,7 +62,7 @@ window.userManagementView = {
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
                 <div>
                     <h2 style="margin:0; font-size:18px;">👥 User Accounts</h2>
-                    <p style="margin:4px 0 0; color:var(--text-muted); font-size:13px;">${users.length} registered user${users.length !== 1 ? 's' : ''}. Owners have full access to all modules.</p>
+                    <p style="margin:4px 0 0; color:var(--text-muted); font-size:13px;">${users.length} registered user${users.length !== 1 ? 's' : ''}. Owners and System Admins have full administrative rights.</p>
                 </div>
                 <button class="btn btn-primary" onclick="userManagementView.showCreateModal()" style="width:auto; display:flex; align-items:center; gap:8px;">
                     ➕ Create New User
@@ -106,7 +106,7 @@ window.userManagementView = {
     _togglePermSection: function () {
         const role = (document.getElementById('um-c-role')?.value || 'Standard');
         const section = document.getElementById('um-c-perm-section');
-        if (section) section.style.display = role === 'Admin' ? 'block' : 'none';
+        if (section) section.style.display = (role === 'Admin' || role === 'System Admin') ? 'block' : 'none';
     },
 
     createUser: function () {
@@ -133,13 +133,13 @@ window.userManagementView = {
             return;
         }
 
-        // Gather permissions for Admin role
-        const permKeys = ['permRestock', 'permProcurement', 'permDetailedInfo', 'permAnalytics', 'permTasks', 'permReports', 'permTakeImmediately', 'permWorkPurposes'];
+        // Gather permissions for Admin & System Admin roles
+        const permKeys = ['permRestock', 'permProcurement', 'permDetailedInfo', 'permAnalytics', 'permTasks', 'permReports', 'permTakeImmediately', 'permWorkPurposes', 'permUserManagement', 'permInventoryFlow'];
         const perms = {};
-        if (role === 'Admin') {
+        if (role === 'Admin' || role === 'System Admin') {
             permKeys.forEach(k => {
                 const el = document.getElementById('um-c-' + k);
-                perms[k] = el ? el.value : 'Non';
+                perms[k] = el ? el.value : 'Edit'; // System Admins default to Edit
             });
         } else {
             permKeys.forEach(k => perms[k] = 'Non');
@@ -166,7 +166,8 @@ window.userManagementView = {
             window.stateManager.set('Users', UsersTab);
         }
 
-        window.stateManager.logAudit('USER_CREATED', `Owner created new ${role} user: ${name}`, window.appEngine.currentUser);
+        const creator = window.appEngine.currentUser;
+        window.stateManager.logAudit('USER_CREATED', `${creator.userType} created new ${role} user: ${name}`, creator);
         window.appEngine.showToast(`✅ ${name} (${role}) created successfully.`, 'success');
         this.hideCreateModal();
         this.renderTab();
@@ -190,13 +191,21 @@ window.userManagementView = {
         if (nameEl) nameEl.innerText = user.name || user.phone;
 
         const roleEl = document.getElementById('um-e-role');
-        if (roleEl) roleEl.value = user.userType || 'Standard';
+        if (roleEl) {
+            roleEl.value = user.userType || 'Standard';
+            // Disable role select if editing self
+            if (user.phone === window.appEngine.currentUser.phone) {
+                roleEl.disabled = true;
+            } else {
+                roleEl.disabled = false;
+            }
+        }
 
         // Populate password (editable but optional)
         const passEl = document.getElementById('um-e-password');
         if (passEl) passEl.value = '';
 
-        const permKeys = ['permRestock', 'permProcurement', 'permDetailedInfo', 'permAnalytics', 'permTasks', 'permReports', 'permTakeImmediately', 'permWorkPurposes'];
+        const permKeys = ['permRestock', 'permProcurement', 'permDetailedInfo', 'permAnalytics', 'permTasks', 'permReports', 'permTakeImmediately', 'permWorkPurposes', 'permUserManagement', 'permInventoryFlow'];
         permKeys.forEach(k => {
             const el = document.getElementById('um-e-' + k);
             if (el) el.value = user[k] || 'Non';
@@ -211,7 +220,7 @@ window.userManagementView = {
 
     _updateEditPermVisibility: function (role) {
         const section = document.getElementById('um-e-perm-section');
-        if (section) section.style.display = role === 'Admin' ? 'block' : 'none';
+        if (section) section.style.display = (role === 'Admin' || role === 'System Admin') ? 'block' : 'none';
     },
 
     saveEdit: function () {
@@ -228,7 +237,7 @@ window.userManagementView = {
         const passEl  = document.getElementById('um-e-password');
         const newPass = passEl && passEl.value.trim() ? btoa(passEl.value.trim()) : users[idx].password;
 
-        const permKeys = ['permRestock', 'permProcurement', 'permDetailedInfo', 'permAnalytics', 'permTasks', 'permReports', 'permTakeImmediately', 'permWorkPurposes'];
+        const permKeys = ['permRestock', 'permProcurement', 'permDetailedInfo', 'permAnalytics', 'permTasks', 'permReports', 'permTakeImmediately', 'permWorkPurposes', 'permUserManagement', 'permInventoryFlow'];
         const perms = {};
         permKeys.forEach(k => {
             const el = document.getElementById('um-e-' + k);
@@ -240,7 +249,8 @@ window.userManagementView = {
 
         users[idx] = { ...users[idx], userType: newRole, password: newPass, requestPerm: reqPerm, ...perms };
         window.stateManager.set('users', users);
-        window.stateManager.logAudit('USER_UPDATED', `Owner updated permissions for ${users[idx].name || phone}`, window.appEngine.currentUser);
+        const creator = window.appEngine.currentUser;
+        window.stateManager.logAudit('USER_UPDATED', `${creator.userType} updated permissions for ${users[idx].name || phone}`, creator);
         window.appEngine.showToast(`✅ ${users[idx].name || phone} updated successfully.`, 'success');
 
         this.hideEditModal();
@@ -266,7 +276,8 @@ window.userManagementView = {
             const updated = users.filter(u => u.phone !== phone);
             window.stateManager.set('users', updated);
             
-            window.stateManager.logAudit('USER_DELETED', `Owner removed user: ${user.name || phone}`, window.appEngine.currentUser);
+            const creator = window.appEngine.currentUser;
+            window.stateManager.logAudit('USER_DELETED', `${creator.userType} removed user: ${user.name || phone}`, creator);
             window.appEngine.showToast(`🗑 ${user.name || phone} removed from system.`, 'warning');
             
             // Re-render happens automatically via state-changed event -> managementView.render() -> switchTab('users') -> renderTab()
