@@ -1,7 +1,7 @@
 import http.server
 import socketserver
 
-PORT = 8000
+PORT = 8088
 
 class CustomHandler(http.server.SimpleHTTPRequestHandler):
     def end_headers(self):
@@ -15,6 +15,6 @@ CustomHandler.extensions_map['.css'] = 'text/css'
 CustomHandler.extensions_map['.js'] = 'application/javascript'
 CustomHandler.extensions_map['.html'] = 'text/html'
 
-with http.server.ThreadingHTTPServer(("0.0.0.0", PORT), CustomHandler) as httpd:
+with http.server.ThreadingHTTPServer(("127.0.0.1", PORT), CustomHandler) as httpd:
     print("Serving at port", PORT, "with correct MIME types (Threaded)!")
     httpd.serve_forever()

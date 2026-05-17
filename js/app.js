@@ -14,6 +14,7 @@ class AppEngine {
 
         this.initDOM();
         this.initEventListeners();
+        this.initPWAInstallPrompt();
     }
 
 
@@ -29,6 +30,9 @@ class AppEngine {
     }
 
     toggleTheme() {
+        // Trigger synchronized smooth CSS transition
+        document.body.classList.add('theme-transitioning');
+
         document.body.classList.toggle('light-theme');
         const isLight = document.body.classList.contains('light-theme');
         localStorage.setItem('theme', isLight ? 'light' : 'dark');
@@ -46,6 +50,142 @@ class AppEngine {
             const view = window[currentModule + 'View'];
             if (view && typeof view.render === 'function') view.render();
         }
+
+        // Clean up theme-transitioning class after transition completes
+        setTimeout(() => {
+            document.body.classList.remove('theme-transitioning');
+        }, 400);
+    }
+
+    initPWAInstallPrompt() {
+        let deferredPrompt = null;
+
+        // Listen for beforeinstallprompt event
+        window.addEventListener('beforeinstallprompt', (e) => {
+            console.log('beforeinstallprompt event fired!');
+            // Prevent the mini-infobar from appearing on mobile
+            e.preventDefault();
+            // Stash the event so it can be triggered later.
+            deferredPrompt = e;
+            
+            // Check if user has already dismissed it in this session or permanently
+            if (localStorage.getItem('pwa-install-dismissed') === 'true') {
+                // Still show sidebar button so they have a way to install if they change their mind
+                const sidebarInstallBtn = document.getElementById('pwa-sidebar-install');
+                if (sidebarInstallBtn) {
+                    sidebarInstallBtn.style.display = 'inline-flex';
+                }
+                return;
+            }
+
+            // Show the custom popup/banner after a short delay so it feels natural
+            setTimeout(() => {
+                this.showInstallPopup(deferredPrompt);
+            }, 3000);
+
+            // Show the sidebar button for manual installation anytime
+            const sidebarInstallBtn = document.getElementById('pwa-sidebar-install');
+            if (sidebarInstallBtn) {
+                sidebarInstallBtn.style.display = 'inline-flex';
+            }
+        });
+
+        // Set up manual trigger from the sidebar button
+        const sidebarInstallBtn = document.getElementById('pwa-sidebar-install');
+        if (sidebarInstallBtn) {
+            sidebarInstallBtn.addEventListener('click', async () => {
+                if (deferredPrompt) {
+                    sidebarInstallBtn.disabled = true;
+                    deferredPrompt.prompt();
+                    const { outcome } = await deferredPrompt.userChoice;
+                    console.log(`User response to the install prompt: ${outcome}`);
+                    deferredPrompt = null;
+                    sidebarInstallBtn.style.display = 'none';
+                    sidebarInstallBtn.disabled = false;
+                    
+                    const popup = document.getElementById('pwa-install-popup');
+                    if (popup) {
+                        popup.classList.remove('active');
+                        setTimeout(() => popup.remove(), 400);
+                    }
+                } else {
+                    this.showToast('Install prompt not available. Please ensure you are using Chrome or Edge and the app is not already installed.', 'info');
+                }
+            });
+        }
+
+        // Listen for successful installation
+        window.addEventListener('appinstalled', (evt) => {
+            console.log('App was successfully installed!');
+            // Hide the popup if it's currently showing
+            const popup = document.getElementById('pwa-install-popup');
+            if (popup) {
+                popup.classList.remove('active');
+                setTimeout(() => popup.remove(), 400);
+            }
+            // Hide sidebar install button
+            const sidebarInstallBtn = document.getElementById('pwa-sidebar-install');
+            if (sidebarInstallBtn) sidebarInstallBtn.style.display = 'none';
+            
+            this.showToast('App installed successfully to your desktop!', 'success');
+        });
+    }
+
+    showInstallPopup(deferredPrompt) {
+        // Create popup element if it doesn't exist
+        if (document.getElementById('pwa-install-popup')) return;
+
+        const popup = document.createElement('div');
+        popup.id = 'pwa-install-popup';
+        popup.innerHTML = `
+            <div class="pwa-popup-header">
+                <div class="pwa-popup-logo">
+                    <img src="assets/favicon.png" alt="App Logo">
+                </div>
+                <div class="pwa-popup-title-block">
+                    <div class="pwa-popup-title">Install Fuel Inventory</div>
+                    <div class="pwa-popup-subtitle">Get the Desktop App</div>
+                </div>
+            </div>
+            <div class="pwa-popup-body">
+                Access the inventory system instantly from your desktop with offline support and a fast, distraction-free window.
+            </div>
+            <div class="pwa-popup-actions">
+                <button class="pwa-popup-btn-install" id="pwa-popup-install-btn">💻 Install App</button>
+                <button class="pwa-popup-btn-dismiss" id="pwa-popup-dismiss-btn">Maybe Later</button>
+            </div>
+        `;
+
+        document.body.appendChild(popup);
+
+        // Force a reflow to trigger the entry animation
+        setTimeout(() => {
+            popup.classList.add('active');
+        }, 100);
+
+        // Bind install action
+        const installBtn = document.getElementById('pwa-popup-install-btn');
+        installBtn.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log(`User response to the install prompt: ${outcome}`);
+                deferredPrompt = null;
+                popup.classList.remove('active');
+                setTimeout(() => popup.remove(), 400);
+                
+                const sidebarInstallBtn = document.getElementById('pwa-sidebar-install');
+                if (sidebarInstallBtn) sidebarInstallBtn.style.display = 'none';
+            }
+        });
+
+        // Bind dismiss action
+        const dismissBtn = document.getElementById('pwa-popup-dismiss-btn');
+        dismissBtn.addEventListener('click', () => {
+            localStorage.setItem('pwa-install-dismissed', 'true');
+            popup.classList.remove('active');
+            setTimeout(() => popup.remove(), 400);
+        });
     }
 
 
@@ -389,3 +529,12 @@ window.addEventListener('DOMContentLoaded', () => {
         engine.boot();
     });
 });
+
+// Register Service Worker for PWA support
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('Service Worker registered successfully with scope:', reg.scope))
+            .catch(err => console.error('Service Worker registration failed:', err));
+    });
+}
