@@ -252,12 +252,6 @@ class AppEngine {
                     btn.onclick = () => this.logout();
                 }
 
-                const changePwdBtn = document.getElementById('change-pwd-btn');
-                if (changePwdBtn) {
-                    const isAdmin = ['Admin', 'Owner', 'System Admin'].includes(this.currentUser.userType);
-                    changePwdBtn.style.display = isAdmin ? 'inline-flex' : 'none';
-                }
-
                 // Mobile Sidebar Logout
                 const mobileLogoutBtn = document.getElementById('mobile-logout-btn');
                 if (mobileLogoutBtn) {

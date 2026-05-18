@@ -54,16 +54,7 @@ window.inventoryView = {
                                 ${isAdmin ? '<th>Status</th>' : ''}
                                 <th>Actions</th>
                             </tr>
-                            <tr id="inv-header-filter-row" style="background:hsla(0, 0%, 100%, 0.02);">
-                                <td><input type="text" placeholder="Filter ID..." data-col="0" class="inv-col-filter" style="width:100%; padding:8px 10px; border-radius:var(--radius-sm); border:1px solid var(--glass-border); background:var(--surface); color:var(--text-main); font-size:12px;" oninput="inventoryView.populateTable()"></td>
-                                <td><input type="text" placeholder="Filter Name..." data-col="1" class="inv-col-filter" style="width:100%; padding:8px 10px; border-radius:var(--radius-sm); border:1px solid var(--glass-border); background:var(--surface); color:var(--text-main); font-size:12px;" oninput="inventoryView.populateTable()"></td>
-                                <td><input type="text" placeholder="Filter Desc..." data-col="2" class="inv-col-filter" style="width:100%; padding:8px 10px; border-radius:var(--radius-sm); border:1px solid var(--glass-border); background:var(--surface); color:var(--text-main); font-size:12px;" oninput="inventoryView.populateTable()"></td>
-                                <td><input type="text" placeholder="Filter Part #..." data-col="3" class="inv-col-filter" style="width:100%; padding:8px 10px; border-radius:var(--radius-sm); border:1px solid var(--glass-border); background:var(--surface); color:var(--text-main); font-size:12px;" oninput="inventoryView.populateTable()"></td>
-                                <td><input type="text" placeholder="Filter Location..." data-col="4" class="inv-col-filter" style="width:100%; padding:8px 10px; border-radius:var(--radius-sm); border:1px solid var(--glass-border); background:var(--surface); color:var(--text-main); font-size:12px;" oninput="inventoryView.populateTable()"></td>
-                                <td><input type="text" placeholder="Filter Qty..." data-col="5" class="inv-col-filter" style="width:100%; padding:8px 10px; border-radius:var(--radius-sm); border:1px solid var(--glass-border); background:var(--surface); color:var(--text-main); font-size:12px;" oninput="inventoryView.populateTable()"></td>
-                                ${isAdmin ? `<td><input type="text" placeholder="Filter Status..." data-col="6" class="inv-col-filter" style="width:100%; padding:8px 10px; border-radius:var(--radius-sm); border:1px solid var(--glass-border); background:var(--surface); color:var(--text-main); font-size:12px;" oninput="inventoryView.populateTable()"></td>` : ''}
-                                <td></td>
-                            </tr>
+                            <!-- Removed column filters from headers as per request -->
                         </thead>
                         <tbody id="inventory-tbody"></tbody>
                     </table>

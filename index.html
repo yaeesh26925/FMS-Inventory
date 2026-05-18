@@ -27,6 +27,8 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <!-- EmailJS SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 </head>
 <body>
     <div class="orb orb-1"></div>
@@ -124,7 +126,6 @@
                 <div class="user-block">
                     <div id="current-user-name" class="user-name">Staff Mode</div>
                     <button id="auth-btn" class="btn btn-primary btn-sm" onclick="window.appEngine.showLogin()">Admin Login</button>
-                    <button id="change-pwd-btn" class="btn btn-secondary btn-sm" style="display:none; margin-top: 8px; width: 100%; padding: 6px; font-size:12px;" onclick="sendAdminPasswordResetLink()">🔑 Change Password</button>
                     <button id="pwa-sidebar-install" class="btn btn-secondary btn-sm" style="display:none; margin-top: 8px; width: 100%; border: 1px solid var(--primary); color: var(--primary); background: hsla(210, 100%, 60%, 0.05); gap: 6px;">💻 Install App</button>
                     <button id="mobile-logout-btn" class="mobile-logout-btn">🚪 Logout</button>
 
@@ -364,7 +365,7 @@
                 <h2>Enter OTP</h2>
                 <span class="modal-close" onclick="closeOTPModals()">&times;</span>
             </div>
-            <p style="color:var(--text-muted); font-size:13px; margin-bottom:16px;">Please enter the 4-digit code sent to your phone.</p>
+            <p style="color:var(--text-muted); font-size:13px; margin-bottom:16px;">Please enter the 4-digit code sent to your email.</p>
             <div class="input-group">
                 <label>OTP Code</label>
                 <input type="text" id="otp-code-input" placeholder="0000">

@@ -156,18 +156,7 @@ window.financialsView = {
                                 <th>Unit Price ($)</th>
                                 <th>Total Line Value</th>
                             </tr>
-                            <tr id="fin-header-filter-row" style="background:var(--bg-color);">
-                                <td><input type="text" placeholder="Filter ID..." data-col="id" class="fin-col-filter" style="width:100%; padding:4px 6px; border-radius:4px; border:1px solid var(--border); background:var(--surface); color:var(--text-primary); font-size:11px;" oninput="financialsView.populateTable()"></td>
-                                <td><input type="text" placeholder="Filter Name..." data-col="name" class="fin-col-filter" style="width:100%; padding:4px 6px; border-radius:4px; border:1px solid var(--border); background:var(--surface); color:var(--text-primary); font-size:11px;" oninput="financialsView.populateTable()"></td>
-                                <td><input type="text" placeholder="Filter Desc..." data-col="description" class="fin-col-filter" style="width:100%; padding:4px 6px; border-radius:4px; border:1px solid var(--border); background:var(--surface); color:var(--text-primary); font-size:11px;" oninput="financialsView.populateTable()"></td>
-                                <td><input type="text" placeholder="Filter Part #..." data-col="code" class="fin-col-filter" style="width:100%; padding:4px 6px; border-radius:4px; border:1px solid var(--border); background:var(--surface); color:var(--text-primary); font-size:11px;" oninput="financialsView.populateTable()"></td>
-                                ${isAdmin ? '<td><input type="text" placeholder="Filter GNS..." data-col="gnsCode" class="fin-col-filter" style="width:100%; padding:4px 6px; border-radius:4px; border:1px solid var(--border); background:var(--surface); color:var(--text-primary); font-size:11px;" oninput="financialsView.populateTable()"></td>' : ''}
-                                <td><input type="text" placeholder="Filter Location..." data-col="location" class="fin-col-filter" style="width:100%; padding:4px 6px; border-radius:4px; border:1px solid var(--border); background:var(--surface); color:var(--text-primary); font-size:11px;" oninput="financialsView.populateTable()"></td>
-                                <td><input type="text" placeholder="Filter Qty..." data-col="quantity" class="fin-col-filter" style="width:100%; padding:4px 6px; border-radius:4px; border:1px solid var(--border); background:var(--surface); color:var(--text-primary); font-size:11px;" oninput="financialsView.populateTable()"></td>
-                                <td><input type="text" placeholder="Filter Status..." data-col="status" class="fin-col-filter" style="width:100%; padding:4px 6px; border-radius:4px; border:1px solid var(--border); background:var(--surface); color:var(--text-primary); font-size:11px;" oninput="financialsView.populateTable()"></td>
-                                <td><input type="text" placeholder="Filter Price..." data-col="unitPrice" class="fin-col-filter" style="width:100%; padding:4px 6px; border-radius:4px; border:1px solid var(--border); background:var(--surface); color:var(--text-primary); font-size:11px;" oninput="financialsView.populateTable()"></td>
-                                <td><input type="text" placeholder="Filter Value..." data-col="totalValue" class="fin-col-filter" style="width:100%; padding:4px 6px; border-radius:4px; border:1px solid var(--border); background:var(--surface); color:var(--text-primary); font-size:11px;" oninput="financialsView.populateTable()"></td>
-                            </tr>
+                            <!-- Removed column filters from headers as per request -->
                         </thead>
                         <tbody id="financial-inventory-tbody"></tbody>
                     </table>

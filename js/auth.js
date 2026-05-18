@@ -16,8 +16,20 @@ function initFirebase() {
     }
 }
 
-// Ensure Firebase initializes once DOM is ready
-document.addEventListener('DOMContentLoaded', initFirebase);
+function initEmailJS() {
+    if (window.emailjs && window.CONFIG.EMAILJS_CONFIG && window.CONFIG.EMAILJS_CONFIG.publicKey) {
+        emailjs.init({
+            publicKey: window.CONFIG.EMAILJS_CONFIG.publicKey,
+        });
+        console.log("EmailJS SDK initialized successfully.");
+    }
+}
+
+// Ensure services initialize once DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    initFirebase();
+    initEmailJS();
+});
 
 function setupRecaptcha() {
     if (!auth) return;
@@ -288,6 +300,78 @@ function closeOTPModals() {
     currentOTP = null;
 }
 
+function sendOTPEmail(user, otp) {
+    const email = user.email;
+    const name = user.name || "User";
+
+    if (!email) {
+        console.warn("No email associated with user. Falling back to console OTP logging.");
+        window.appEngine.showToast(`[SIMULATION] OTP ${otp} logged to console (No email registered for user)`, 'warning');
+        console.log(`[PASS RESET OTP Fallback] User phone: ${user.phone}. Code: ${otp}`);
+        return;
+    }
+
+    let sentViaEmailJS = false;
+    let sentViaFirestore = false;
+
+    // 1. Try sending via EmailJS
+    if (window.emailjs && window.CONFIG.EMAILJS_CONFIG && window.CONFIG.EMAILJS_CONFIG.publicKey && window.CONFIG.EMAILJS_CONFIG.serviceId && window.CONFIG.EMAILJS_CONFIG.templateId) {
+        emailjs.send(
+            window.CONFIG.EMAILJS_CONFIG.serviceId,
+            window.CONFIG.EMAILJS_CONFIG.templateId,
+            {
+                to_email: email,
+                to_name: name,
+                otp_code: otp,
+                app_name: "Fuel Maintenance Inventory"
+            }
+        ).then(() => {
+            console.log(`Email successfully dispatched via EmailJS to ${email}`);
+        }).catch(err => {
+            console.error("EmailJS dispatch failed:", err);
+            window.appEngine.showToast("EmailJS send failed, check browser console.", "danger");
+        });
+        sentViaEmailJS = true;
+    }
+
+    // 2. Try writing to Firestore 'mail' collection (excellent for Firebase Trigger Email extension)
+    if (window.firebase && firebase.apps.length && auth) {
+        firebase.firestore().collection('mail').add({
+            to: email,
+            message: {
+                subject: 'FMS Inventory - Password Reset OTP',
+                html: `
+                    <div style="font-family: Arial, sans-serif; padding: 24px; color: #1e293b; background-color: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; max-width: 480px; margin: 0 auto;">
+                        <h2 style="color: #0f172a; margin-top: 0; font-family: 'Outfit', sans-serif;">Fuel Maintenance Inventory</h2>
+                        <p style="font-size: 15px; line-height: 1.5; color: #334155;">Hello <strong>${name}</strong>,</p>
+                        <p style="font-size: 15px; line-height: 1.5; color: #334155;">You requested to reset your password. Use the following 4-digit verification code:</p>
+                        <div style="text-align: center; margin: 24px 0;">
+                            <span style="display: inline-block; font-size: 36px; font-weight: 800; color: #3b82f6; letter-spacing: 4px; padding: 8px 24px; border: 2px dashed #3b82f6; border-radius: 6px; background-color: #eff6ff; font-family: monospace;">${otp}</span>
+                        </div>
+                        <p style="font-size: 14px; line-height: 1.5; color: #64748b;">This verification code is valid only for this session. Do not share this code with anyone.</p>
+                        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+                        <p style="font-size: 12px; line-height: 1.5; color: #94a3b8; margin-bottom: 0;">If you did not request this password reset, please ignore this email or notify an administrator.</p>
+                    </div>
+                `
+            }
+        }).then(() => {
+            console.log(`Firestore mail document created successfully for ${email}`);
+        }).catch(err => {
+            console.error("Firestore 'mail' write failed:", err);
+        });
+        sentViaFirestore = true;
+    }
+
+    // 3. Provide feedback / fallback alert
+    if (sentViaEmailJS || sentViaFirestore) {
+        window.appEngine.showToast(`OTP Code sent to ${email}`, 'success');
+    } else {
+        // Fallback simulation when neither service is actively configured
+        console.log(`[SIMULATED EMAIL] Send to ${email} (Name: ${name}): Your reset code is ${otp}`);
+        window.appEngine.showToast(`[SIMULATION] OTP ${otp} sent to ${email}`, 'info');
+    }
+}
+
 function requestOTP() {
     const rc = document.getElementById('otp-rc-number').value.trim();
     if (!rc) {
@@ -309,9 +393,8 @@ function requestOTP() {
     // Generate simulated 4-digit OTP
     currentOTP = Math.floor(1000 + Math.random() * 9000).toString();
     
-    // SIMULATE SMS
-    console.log(`[SIMULATED SMS] Send to ${user.phone}: Your reset code is ${currentOTP}`);
-    window.appEngine.showToast(`[SIMULATION] OTP ${currentOTP} sent to ${user.phone}`, 'info');
+    // Send actual email OTP
+    sendOTPEmail(user, currentOTP);
     
     showOTPModal(2);
 }
