@@ -157,6 +157,11 @@ function verifyFirebaseOTP() {
             }
 
             if (user) {
+                if (user.isApproved === false) {
+                    document.getElementById('login-error').innerText = 'Your account is pending administrator approval.';
+                    auth.signOut();
+                    return;
+                }
                 localStorage.setItem('currentUser', JSON.stringify(user));
                 window.stateManager.logAudit('USER_LOGIN', 'User authenticated via Firebase OTP (Forgot Password flow)', { name: user.name || user.phone });
                 window.appEngine.boot();
@@ -224,6 +229,10 @@ function loginWithPassword() {
     });
     
     if (user) {
+        if (user.isApproved === false) {
+            errorEl.innerText = 'Your account is pending administrator approval.';
+            return;
+        }
         console.log("User found! Logging in...", user.name);
         localStorage.setItem('currentUser', JSON.stringify(user));
         window.stateManager.logAudit('USER_LOGIN', 'User authenticated to system with password', { name: user.name || user.phone });
@@ -351,13 +360,19 @@ function registerUser() {
     const password = document.getElementById('reg-password').value;
     const rcNumber = document.getElementById('reg-rc').value.trim();
     const name = document.getElementById('reg-name').value.trim();
+    const email = document.getElementById('reg-email').value.trim();
     
-    if (!phone || !password || !rcNumber || !name) {
+    if (!phone || !password || !rcNumber || !name || !email) {
         if (window.appEngine) window.appEngine.showToast("Please fill all fields.", 'warning');
         else alert("Please fill all fields.");
         return;
     }
     
+    if (!auth) {
+        if (window.appEngine) window.appEngine.showToast("Firebase is not configured. Cannot register.", 'danger');
+        return;
+    }
+
     // Automatically prepend +960 if not present
     let formattedPhone = phone;
     if (!formattedPhone.startsWith('+')) {
@@ -368,39 +383,84 @@ function registerUser() {
     const UsersTab = window.stateManager.get('Users');
 
     // Check if user already exists
-    if (users.find(u => u.phone === formattedPhone || String(u.rcNumber).trim() === rcNumber)) {
-        if (window.appEngine) window.appEngine.showToast("User with this phone or RC Number already exists.", 'danger');
-        else alert("User with this phone or RC Number already exists.");
+    if (users.find(u => u.phone === formattedPhone || String(u.rcNumber).trim() === rcNumber || String(u.email).toLowerCase() === email.toLowerCase())) {
+        if (window.appEngine) window.appEngine.showToast("User with this phone, email, or RC Number already exists.", 'danger');
+        else alert("User with this phone, email, or RC Number already exists.");
         return;
     }
 
-    // Default to 'Standard' userType and 'View' requestPerm
-    const newUser = {
-        phone: formattedPhone,
-        password: btoa(password),
-        rcNumber: rcNumber,
-        name: name,
-        userType: 'Standard',
-        requestPerm: 'View'
-    };
+    if (window.appEngine) window.appEngine.showToast("Registering user...", "info");
 
-    users.push(newUser);
-    window.stateManager.set('users', users);
+    auth.createUserWithEmailAndPassword(email, password)
+        .then((userCredential) => {
+            // Signed in temporarily, log out immediately to prevent bypassing approval
+            auth.signOut();
+
+            // Default to 'Standard' userType and 'View' requestPerm
+            const newUser = {
+                phone: formattedPhone,
+                password: btoa(password),
+                rcNumber: rcNumber,
+                name: name,
+                email: email,
+                userType: 'Standard',
+                requestPerm: 'View',
+                isApproved: false
+            };
+
+            users.push(newUser);
+            window.stateManager.set('users', users);
+            
+            // Sync with the uppercase Users tab cache if needed
+            if(!UsersTab.find(u => String(u['RC Number']).trim() === rcNumber)) {
+                UsersTab.push({ 'RC Number': rcNumber, 'Name': name });
+                window.stateManager.set('Users', UsersTab);
+            }
+
+            window.stateManager.logAudit('USER_REGISTERED', 'New user registered', { name: name, phone: formattedPhone });
+            
+            if (window.appEngine) {
+                window.appEngine.showToast("Registration successful! Your account is pending admin approval.", 'info');
+            } else {
+                alert("Registration successful! Your account is pending admin approval.");
+            }
+            
+            hideRegistrationModal();
+            document.getElementById('login-phone').value = formattedPhone;
+        })
+        .catch((error) => {
+            console.error("Firebase Registration Error", error);
+            if (window.appEngine) window.appEngine.showToast("Registration failed: " + error.message, 'danger');
+            else alert("Registration failed: " + error.message);
+        });
+}
+
+// Admin Email Password Reset
+function sendAdminPasswordResetLink() {
+    const user = window.appEngine.currentUser;
+    if (!user || !['Admin', 'Owner', 'System Admin'].includes(user.userType)) {
+        window.appEngine.showToast('You must be an admin to use this feature.', 'danger');
+        return;
+    }
     
-    // Sync with the uppercase Users tab cache if needed
-    if(!UsersTab.find(u => String(u['RC Number']).trim() === rcNumber)) {
-        UsersTab.push({ 'RC Number': rcNumber, 'Name': name });
-        window.stateManager.set('Users', UsersTab);
+    if (!user.email) {
+        window.appEngine.showToast('No email address associated with your account. Please update your profile.', 'danger');
+        return;
     }
 
-    window.stateManager.logAudit('USER_REGISTERED', 'New user registered', { name: name, phone: formattedPhone });
-    
-    if (window.appEngine) {
-        window.appEngine.showToast("Registration successful! You can now log in.", 'success');
-    } else {
-        alert("Registration successful! You can now log in.");
+    if (!auth) {
+        window.appEngine.showToast('Firebase is not configured. Cannot send password reset email.', 'danger');
+        return;
     }
+
+    window.appEngine.showToast('Sending password reset link...', 'info');
     
-    hideRegistrationModal();
-    document.getElementById('login-phone').value = formattedPhone;
+    auth.sendPasswordResetEmail(user.email)
+        .then(() => {
+            window.appEngine.showToast(`Password reset link sent securely to ${user.email}`, 'success');
+        })
+        .catch((error) => {
+            console.error("Error sending password reset email", error);
+            window.appEngine.showToast("Failed to send reset link: " + error.message, 'danger');
+        });
 }

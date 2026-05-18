@@ -27,6 +27,8 @@ window.userManagementView = {
             }).join(' ');
 
             const guard = (isCurrentUser && currentUser.userType !== 'System Admin') ? 'disabled title="Cannot modify yourself"' : '';
+            const isPending = u.isApproved === false;
+            const statusBadge = isPending ? `<div style="display:inline-block; padding:2px 8px; border-radius:999px; font-size:10px; font-weight:700; background:rgba(239,68,68,0.1); color:var(--danger); border:1px solid rgba(239,68,68,0.2); margin-top: 4px;">Pending Approval</div>` : '';
 
             return `
             <tr>
@@ -37,7 +39,8 @@ window.userManagementView = {
                         </div>
                         <div>
                             <div style="font-weight:600; color:var(--text-main);">${u.name || '—'}</div>
-                            <div style="font-size:11px; color:var(--text-muted);">${u.phone || '—'}</div>
+                            <div style="font-size:11px; color:var(--text-muted);">${u.phone || '—'}${u.email ? ' • ' + u.email : ''}</div>
+                            ${statusBadge}
                         </div>
                     </div>
                 </td>
@@ -51,6 +54,7 @@ window.userManagementView = {
                 <td style="font-size:13px; letter-spacing:2px;">${role === 'Standard' ? '<span style="color:var(--text-muted); font-size:12px;">Basic access only</span>' : (role === 'Owner' ? '<span style="color:#f59e0b; font-size:12px;">Full Access</span>' : permIcons)}</td>
                 <td>
                     <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                        ${isPending && (currentUser.permUserManagement === 'Edit' || currentUser.userType === 'Owner' || currentUser.userType === 'System Admin') ? `<button class="btn btn-primary btn-sm" onclick="userManagementView.approveUser('${u.phone}')" style="padding:4px 10px; font-size:12px;">✅ Approve</button>` : ''}
                         ${role !== 'Owner' ? `<button class="btn btn-secondary btn-sm" onclick="userManagementView.showEditModal('${u.phone}')" ${guard} style="padding:4px 10px; font-size:12px;">✏️ Edit</button>` : ''}
                         ${!isCurrentUser && role !== 'Owner' ? `<button class="btn btn-sm btn-danger" onclick="userManagementView.deleteUser('${u.phone}')" style="padding:4px 10px; font-size:12px;">🗑 Remove</button>` : ''}
                     </div>
@@ -90,7 +94,7 @@ window.userManagementView = {
     showCreateModal: function () {
         document.getElementById('um-create-modal').classList.add('active');
         // Reset fields
-        ['um-c-name', 'um-c-phone', 'um-c-rc', 'um-c-password'].forEach(id => {
+        ['um-c-name', 'um-c-email', 'um-c-phone', 'um-c-rc', 'um-c-password'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.value = '';
         });
@@ -111,6 +115,7 @@ window.userManagementView = {
 
     createUser: function () {
         const name     = (document.getElementById('um-c-name')?.value || '').trim();
+        const email    = (document.getElementById('um-c-email')?.value || '').trim();
         const phone    = (document.getElementById('um-c-phone')?.value || '').trim();
         const rc       = (document.getElementById('um-c-rc')?.value || '').trim();
         const password = (document.getElementById('um-c-password')?.value || '');
@@ -147,6 +152,7 @@ window.userManagementView = {
 
         const newUser = {
             name,
+            email,
             phone: fmtPhone,
             password: btoa(password),
             rcNumber: rc,
@@ -189,6 +195,9 @@ window.userManagementView = {
         // Populate header
         const nameEl = document.getElementById('um-e-username');
         if (nameEl) nameEl.innerText = user.name || user.phone;
+
+        const emailEl = document.getElementById('um-e-email');
+        if (emailEl) emailEl.value = user.email || '';
 
         const roleEl = document.getElementById('um-e-role');
         if (roleEl) {
@@ -247,7 +256,10 @@ window.userManagementView = {
         const reqEl = document.getElementById('um-e-requestPerm');
         const reqPerm = reqEl ? reqEl.value : (users[idx].requestPerm || 'View');
 
-        users[idx] = { ...users[idx], userType: newRole, password: newPass, requestPerm: reqPerm, ...perms };
+        const emailEl = document.getElementById('um-e-email');
+        const newEmail = emailEl ? emailEl.value.trim() : (users[idx].email || '');
+
+        users[idx] = { ...users[idx], email: newEmail, userType: newRole, password: newPass, requestPerm: reqPerm, ...perms };
         window.stateManager.set('users', users);
         const creator = window.appEngine.currentUser;
         window.stateManager.logAudit('USER_UPDATED', `${creator.userType} updated permissions for ${users[idx].name || phone}`, creator);
@@ -284,6 +296,27 @@ window.userManagementView = {
         } catch (err) {
             console.error('Error deleting user:', err);
             window.appEngine.showToast('Failed to delete user.', 'danger');
+        }
+    },
+
+    // ── Approve User ─────────────────────────────────────────────────────────
+    approveUser: function (phone) {
+        try {
+            const users = window.stateManager.get('users');
+            const idx = users.findIndex(u => u.phone === phone);
+            if (idx === -1) return;
+
+            users[idx].isApproved = true;
+            window.stateManager.set('users', users);
+            
+            const creator = window.appEngine.currentUser;
+            window.stateManager.logAudit('USER_APPROVED', `${creator.userType} approved user account: ${users[idx].name || phone}`, creator);
+            window.appEngine.showToast(`✅ ${users[idx].name || phone} has been approved.`, 'success');
+            
+            // Re-render handled by state-changed event
+        } catch (err) {
+            console.error('Error approving user:', err);
+            window.appEngine.showToast('Failed to approve user.', 'danger');
         }
     }
 };

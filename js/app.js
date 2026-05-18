@@ -143,7 +143,7 @@ class AppEngine {
                     <img src="assets/favicon.png" alt="App Logo">
                 </div>
                 <div class="pwa-popup-title-block">
-                    <div class="pwa-popup-title">Install Fuel Inventory</div>
+                    <div class="pwa-popup-title">Install Fuel Maintenance Inventory</div>
                     <div class="pwa-popup-subtitle">Get the Desktop App</div>
                 </div>
             </div>
@@ -252,6 +252,12 @@ class AppEngine {
                     btn.onclick = () => this.logout();
                 }
 
+                const changePwdBtn = document.getElementById('change-pwd-btn');
+                if (changePwdBtn) {
+                    const isAdmin = ['Admin', 'Owner', 'System Admin'].includes(this.currentUser.userType);
+                    changePwdBtn.style.display = isAdmin ? 'inline-flex' : 'none';
+                }
+
                 // Mobile Sidebar Logout
                 const mobileLogoutBtn = document.getElementById('mobile-logout-btn');
                 if (mobileLogoutBtn) {
@@ -302,7 +308,16 @@ class AppEngine {
 
         if (avatarEl && usernameEl) {
             if (this.currentUser) {
-                const initial = (this.currentUser.name || this.currentUser.phone || '?').charAt(0).toUpperCase();
+                const nameStr = this.currentUser.name || this.currentUser.phone || '?';
+                let initial = '?';
+                if (nameStr !== '?') {
+                    const parts = nameStr.trim().split(/\\s+/);
+                    if (parts.length > 1) {
+                        initial = (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+                    } else {
+                        initial = parts[0].substring(0, 2).toUpperCase();
+                    }
+                }
                 avatarEl.innerText   = initial;
                 usernameEl.innerText = this.currentUser.name || this.currentUser.phone;
             } else {

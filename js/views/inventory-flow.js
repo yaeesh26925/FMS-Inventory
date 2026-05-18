@@ -1,11 +1,11 @@
 // views/inventory-flow.js
 window['inventory-flowView'] = {
-    // Save filter state globally on the view object to survive database updates/re-renders
     _filters: {
         user: 'All',
         purpose: 'All',
         startDate: '',
-        endDate: ''
+        endDate: '',
+        search: ''
     },
 
     render: function() {
@@ -60,6 +60,11 @@ window['inventory-flowView'] = {
                 
                 <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:16px;">
                     <div class="input-group" style="margin-bottom:0;">
+                        <label style="font-size:12px; color:var(--text-muted); font-weight:600; margin-bottom:6px; display:block;">🔍 Search Items</label>
+                        <input type="text" id="flow-filter-search" placeholder="Name, code, or part number..." style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--glass-border); background:var(--surface); color:var(--text-main); font-weight:500;" oninput="window['inventory-flowView'].updateFilter('search', this.value)">
+                    </div>
+
+                    <div class="input-group" style="margin-bottom:0;">
                         <label style="font-size:12px; color:var(--text-muted); font-weight:600; margin-bottom:6px; display:block;">👤 Filter by Requester</label>
                         <select id="flow-filter-user" style="width:100%; padding:10px; border-radius:var(--radius-md); border:1px solid var(--glass-border); background:var(--surface); color:var(--text-main); font-weight:500;" onchange="window['inventory-flowView'].updateFilter('user', this.value)">
                             <option value="All">All Requesters</option>
@@ -96,7 +101,10 @@ window['inventory-flowView'] = {
                             <tr>
                                 <th>Date</th>
                                 <th>Requested By</th>
+                                <th>Item Code</th>
+                                <th>Part Number</th>
                                 <th>Item Name</th>
+                                <th>Description</th>
                                 <th>Qty Released</th>
                                 <th>Unit Price</th>
                                 <th>Total Cost</th>
@@ -134,7 +142,7 @@ window['inventory-flowView'] = {
                                         <td><strong>${a.name || 'N/A'}</strong></td>
                                         <td>${a.phone || 'N/A'}</td>
                                         <td>${a.rcNumber || 'N/A'}</td>
-                                        <td><span class="badge" style="background:var(--primary); color:white;">${a.userType}</span></td>
+                                        <td><span class="badge" style="background: hsla(210, 100%, 60%, 0.15); color: var(--primary); padding: 4px 10px; border-radius: var(--radius-pill); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; display: inline-block;">${a.userType}</span></td>
                                     </tr>
                                 `).join('') : '<tr><td colspan="4" style="text-align:center;">No authorized admins found.</td></tr>'}
                             </tbody>
@@ -151,6 +159,7 @@ window['inventory-flowView'] = {
         document.getElementById('flow-filter-purpose').value = this._filters.purpose;
         document.getElementById('flow-filter-start').value = this._filters.startDate;
         document.getElementById('flow-filter-end').value = this._filters.endDate;
+        if (document.getElementById('flow-filter-search')) document.getElementById('flow-filter-search').value = this._filters.search;
 
         // Run calculation and filtering
         this.filterConsumption();
@@ -166,7 +175,8 @@ window['inventory-flowView'] = {
             user: 'All',
             purpose: 'All',
             startDate: '',
-            endDate: ''
+            endDate: '',
+            search: ''
         };
 
         // Update DOM inputs directly
@@ -174,6 +184,7 @@ window['inventory-flowView'] = {
         document.getElementById('flow-filter-purpose').value = 'All';
         document.getElementById('flow-filter-start').value = '';
         document.getElementById('flow-filter-end').value = '';
+        if (document.getElementById('flow-filter-search')) document.getElementById('flow-filter-search').value = '';
 
         this.filterConsumption();
     },
@@ -189,6 +200,7 @@ window['inventory-flowView'] = {
         const fPurpose = this._filters.purpose;
         const fStartStr = this._filters.startDate;
         const fEndStr = this._filters.endDate;
+        const fSearch = (this._filters.search || '').toLowerCase();
 
         // Establish Date Objects for local timezone day boundary checks
         const fStart = fStartStr ? new Date(fStartStr + 'T00:00:00') : null;
@@ -211,6 +223,18 @@ window['inventory-flowView'] = {
             if (fStart && reqDate < fStart) return false;
             if (fEnd && reqDate > fEnd) return false;
 
+            // Search filter
+            if (fSearch) {
+                const item = items.find(i => i.id === req.itemId);
+                const itemName = (item && item.name ? item.name : 'Unknown Item').toLowerCase();
+                const itemDesc = (item && item.description ? item.description : '').toLowerCase();
+                const itemCode = (item && item.id ? item.id : '').toLowerCase();
+                const itemPart = (item && item.code ? item.code : '').toLowerCase();
+                if (!itemName.includes(fSearch) && !itemDesc.includes(fSearch) && !itemCode.includes(fSearch) && !itemPart.includes(fSearch)) {
+                    return false;
+                }
+            }
+
             return true;
         });
 
@@ -228,6 +252,9 @@ window['inventory-flowView'] = {
         const rowsHTML = filtered.map(req => {
             const item = items.find(i => i.id === req.itemId);
             const itemName = item ? item.name : 'Unknown Item';
+            const itemDesc = item && item.description ? item.description : '';
+            const itemCode = item && item.id ? item.id : '—';
+            const itemPart = item && item.code ? item.code : '—';
             const unitPrice = item ? (item.unitPrice || 0) : 0;
             const lineCost = req.qty * unitPrice;
 
@@ -240,7 +267,10 @@ window['inventory-flowView'] = {
                 <tr>
                     <td style="font-size:12px; color:var(--text-muted)">${dateStr}</td>
                     <td><strong>${req.userName || req.username}</strong></td>
+                    <td><span style="font-size:12px; color:var(--text-muted);">${itemCode}</span></td>
+                    <td><span style="font-size:12px; color:var(--text-muted);">${itemPart}</span></td>
                     <td>${itemName}</td>
+                    <td><span style="font-size:12px; color:var(--text-muted); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;" title="${itemDesc.replace(/"/g, '&quot;')}">${itemDesc || '—'}</span></td>
                     <td style="font-weight:bold;">${req.qty}</td>
                     <td>$${unitPrice.toLocaleString(undefined, {minimumFractionDigits:2})}</td>
                     <td style="color:var(--primary); font-weight:bold;">$${lineCost.toLocaleString(undefined, {minimumFractionDigits:2})}</td>
@@ -251,7 +281,7 @@ window['inventory-flowView'] = {
         }).join('');
 
         // Inject table rows
-        tbody.innerHTML = rowsHTML || `<tr><td colspan="8" style="text-align:center; padding:32px; color:var(--text-muted);">No matching consumption records found.</td></tr>`;
+        tbody.innerHTML = rowsHTML || `<tr><td colspan="11" style="text-align:center; padding:32px; color:var(--text-muted);">No matching consumption records found.</td></tr>`;
 
         // Update metric display elements
         const valEl = document.getElementById('flow-consumption-value');

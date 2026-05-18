@@ -220,6 +220,10 @@ h1, h2, h3, .brand {
     width: 32px;
     height: 32px;
     object-fit: contain;
+    filter: brightness(0) invert(1);
+}
+body.light-theme .logo-img {
+    filter: brightness(0);
 }
 .nav-links { flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
 .nav-link {
@@ -255,8 +259,10 @@ h1, h2, h3, .brand {
 .btn-logout {
     background: var(--danger);
     color: #fff !important;
-    font-size: 12px;
-    padding: 8px 16px;
+    font-size: 13px;
+    padding: 10px 16px;
+    width: 100%;
+    justify-content: center;
     box-shadow: 0 4px 12px hsla(0, 85%, 60%, 0.3);
 }
 .btn-logout:hover {
@@ -293,13 +299,10 @@ h1, h2, h3, .brand {
     display: flex; 
     justify-content: space-between; 
     align-items: center;
-    position: sticky; 
-    top: 0; 
-    z-index: 500;
-    padding: 24px 0;
+    position: relative; 
+    z-index: 10;
+    padding: 0 0 24px 0;
     margin-bottom: 24px;
-    background: var(--bg);
-    backdrop-filter: var(--glass-blur);
     border-bottom: 1px solid var(--glass-border);
 }
 
@@ -353,6 +356,7 @@ h1, h2, h3, .brand {
         text-align: center;
         gap: 6px;
     }
+}
 .topbar-user:hover { border-color: var(--primary); background: var(--surface-hover); }
 .topbar-avatar {
     width: 32px; height: 32px;
@@ -614,7 +618,9 @@ tbody tr:hover td { background: var(--surface-hover); color: var(--text-main); }
     transform: translateY(20px) scale(0.95);
     transition: var(--transition);
     position: relative;
-    overflow: hidden;
+    max-height: 90vh;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 .modal-content::before {
     content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;

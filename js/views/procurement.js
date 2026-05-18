@@ -18,6 +18,7 @@ window.procurementView = {
                     ` : ''}
 
                     <button class="btn btn-secondary" onclick="procurementView.toggleAnalytics()" style="width:auto">📊 Analytics</button>
+                    <button class="btn btn-secondary" onclick="procurementView.toggleDeletedRecords()" style="width:auto">🗑️ Deleted Records</button>
 
                     <button class="btn btn-back" onclick="window.appEngine.navigate('management')" style="width:auto">⬅️ Back to Management</button>
                 </div>
@@ -77,12 +78,80 @@ window.procurementView = {
                                     <th>PO PRICE ($)</th>
                                     <th>PO RECIEVED DATE</th>
                                     <th>REMARKS</th>
-                                    <th>Attachment</th>
+                                    <th>Folder</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="po-tbody"></tbody>
                         </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Details Folder Section -->
+            <div id="proc-details-section" style="display:none;">
+                <div class="card">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                        <h2 id="details-title">Procurement Details</h2>
+                        <button class="btn btn-secondary" onclick="procurementView.closeDetails()">⬅️ Back</button>
+                    </div>
+                    <div id="details-content" style="background:var(--bg-color); padding:16px; border-radius:8px; border:1px solid var(--border); margin-bottom:24px;"></div>
+                    
+                    <h3>Attachments</h3>
+                    <div style="background:var(--bg-color); padding:16px; border-radius:8px; border:1px solid var(--border); margin-top:16px;">
+                        <div id="details-attachments-list" style="margin-bottom:16px; display:flex; flex-direction:column; gap:8px;"></div>
+                        
+                        <div class="input-group" style="margin-top:16px;">
+                            <label>Add More Files</label>
+                            <div style="display:flex; gap:12px; align-items:center;">
+                                <input type="file" id="details-pdf-file" accept="application/pdf" multiple style="flex:1; padding:8px; border:1px dashed var(--glass-border); border-radius:var(--radius-md);">
+                                <button class="btn btn-primary" id="details-upload-btn" onclick="procurementView.uploadAttachments()">Upload</button>
+                                <div id="details-upload-status" style="font-size:12px; color:var(--success);"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Deleted Records Section -->
+            <div id="proc-deleted-section" style="display:none;">
+                <div class="card">
+                    <h2 style="margin-bottom:16px;">Deleted PR & PO Records</h2>
+                    <div class="table-responsive">
+                        <table style="min-width:1200px;">
+                            <thead>
+                                <tr>
+                                    <th>PR NO</th>
+                                    <th>DESCRIPTION</th>
+                                    <th>DELETED BY</th>
+                                    <th>REASON FOR DELETION</th>
+                                    <th>DELETED DATE</th>
+                                    <th>ORIGINAL ISSUED BY</th>
+                                </tr>
+                            </thead>
+                            <tbody id="po-deleted-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Delete Reason Modal -->
+            <div id="proc-delete-modal" class="modal-overlay">
+                <div class="modal-content" style="max-width:400px;">
+                    <div class="modal-header">
+                        <h2>Delete PR Record</h2>
+                        <span class="modal-close" onclick="document.getElementById('proc-delete-modal').classList.remove('active')">&times;</span>
+                    </div>
+                    <p style="color:var(--text-muted); margin-bottom:16px; font-size:14px;">Please provide a clear reason for deleting this procurement record. This action cannot be undone.</p>
+                    
+                    <div class="input-group">
+                        <label>Reason for Deletion</label>
+                        <textarea id="proc-delete-reason" style="width:100%; height:80px; padding:8px; border-radius:6px; background:var(--bg-color); color:var(--text-primary); border:1px solid var(--border);" placeholder="Type reason here..."></textarea>
+                    </div>
+
+                    <div style="margin-top:20px; display:flex; justify-content:flex-end;">
+                        <button class="btn btn-secondary" onclick="document.getElementById('proc-delete-modal').classList.remove('active')" style="margin-right:12px;">Cancel</button>
+                        <button class="btn btn-danger" onclick="procurementView.confirmDeleteRecord()">Confirm Delete</button>
                     </div>
                 </div>
             </div>
@@ -185,13 +254,16 @@ window.procurementView = {
     toggleAnalytics: function() {
         const el = document.getElementById('proc-analytics-section');
         const main = document.getElementById('proc-main-section');
+        const deletedSec = document.getElementById('proc-deleted-section');
         if (el.style.display === 'none') {
             el.style.display = 'block';
             main.style.display = 'none';
+            if (deletedSec) deletedSec.style.display = 'none';
             this.updateAnalytics();
         } else {
             el.style.display = 'none';
             main.style.display = 'block';
+            if (deletedSec) deletedSec.style.display = 'none';
         }
     },
 
@@ -299,27 +371,118 @@ window.procurementView = {
     },
 
 
-    uploadPDF: function(prNumber) {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = 'application/pdf';
-        input.onchange = e => {
-            const file = e.target.files[0];
-            if (!file) return;
-            
-            // Show loading state
-            const btn = document.getElementById('upload-btn-' + prNumber);
-            if(btn) btn.innerText = "⏳ Uploading...";
-            
-            window.stateManager.uploadProcurementPDF(prNumber, file, (url) => {
-                if(url) {
-                    this.populateTable();
-                } else {
-                    if(btn) btn.innerText = "📄 Upload";
-                }
+    showDetails: function(index) {
+        this.currentDetailsIndex = index;
+        const pos = window.stateManager.get('purchaseOrders');
+        const po = pos[index];
+        if (!po) return;
+
+        document.getElementById('proc-main-section').style.display = 'none';
+        document.getElementById('proc-analytics-section').style.display = 'none';
+        document.getElementById('proc-deleted-section').style.display = 'none';
+        document.getElementById('proc-details-section').style.display = 'block';
+
+        const content = document.getElementById('details-content');
+        content.innerHTML = `
+            <div class="grid" style="grid-template-columns: 1fr 1fr 1fr; gap:16px;">
+                <div><span style="color:var(--text-muted); font-size:12px;">PR NO</span><br><strong>${po['PR NO'] || '-'}</strong></div>
+                <div><span style="color:var(--text-muted); font-size:12px;">PR STATUS</span><br>${this.statusBadge(po['PR STATUS'])}</div>
+                <div><span style="color:var(--text-muted); font-size:12px;">PO NO</span><br><strong>${po['PO NO'] || '-'}</strong></div>
+                <div style="grid-column: span 3;"><span style="color:var(--text-muted); font-size:12px;">DESCRIPTION</span><br>${po['DESCRIPTION'] || '-'}</div>
+                <div><span style="color:var(--text-muted); font-size:12px;">ISSUED BY</span><br>${po['PR ISSUED BY'] || '-'}</div>
+                <div><span style="color:var(--text-muted); font-size:12px;">CREATED DATE</span><br>${po['PR CREATED DATE'] || '-'}</div>
+                <div><span style="color:var(--text-muted); font-size:12px;">PO RECIEVED DATE</span><br>${po['PO RECIEVED DATE'] || '-'}</div>
+                <div><span style="color:var(--text-muted); font-size:12px;">TECHNICAL STATUS</span><br>${this.statusBadge(po['TECHNICAL APPROVAL STATUS'])}</div>
+                <div><span style="color:var(--text-muted); font-size:12px;">PO STATUS</span><br>${this.statusBadge(po['PO STATUS'])}</div>
+                <div><span style="color:var(--text-muted); font-size:12px;">PRICE ($)</span><br>${po['PO PRICE'] || '0.00'}</div>
+                <div style="grid-column: span 3;"><span style="color:var(--text-muted); font-size:12px;">REMARKS</span><br>${po['REMARKS'] || '-'}</div>
+            </div>
+        `;
+
+        this.renderDetailsAttachments(po);
+    },
+
+    closeDetails: function() {
+        this.currentDetailsIndex = -1;
+        document.getElementById('proc-details-section').style.display = 'none';
+        document.getElementById('proc-main-section').style.display = 'block';
+        this.populateTable();
+    },
+
+    renderDetailsAttachments: function(po) {
+        const listContainer = document.getElementById('details-attachments-list');
+        const attachments = po.attachments || [];
+        
+        // Include legacy pdfUrl if present and not already in attachments
+        if (po.pdfUrl && attachments.length === 0) {
+            attachments.push({
+                name: 'Legacy PO Document.pdf',
+                url: po.pdfUrl,
+                uploadedAt: po['PR CREATED DATE'] || new Date().toISOString(),
+                uploadedBy: po['PR ISSUED BY'] || 'System'
+            });
+        }
+
+        if (attachments.length === 0) {
+            listContainer.innerHTML = '<div style="color:var(--text-muted); font-size:14px; text-align:center; padding:12px;">No files attached to this record.</div>';
+            return;
+        }
+
+        listContainer.innerHTML = attachments.map(att => {
+            const dateStr = new Date(att.uploadedAt).toLocaleString();
+            return `
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:hsla(0,0%,100%,0.02); border:1px solid var(--border); border-radius:6px;">
+                    <div>
+                        <div style="font-weight:600; color:var(--text-main); margin-bottom:4px;">📄 ${att.name}</div>
+                        <div style="font-size:11px; color:var(--text-muted);">Uploaded by ${att.uploadedBy} on ${dateStr}</div>
+                    </div>
+                    <div>
+                        <a href="${att.url}" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none;">🔗 View</a>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    },
+
+    uploadAttachments: function() {
+        const fileInput = document.getElementById('details-pdf-file');
+        const statusEl = document.getElementById('details-upload-status');
+        const files = fileInput.files;
+
+        if (!files || files.length === 0) {
+            window.appEngine.showToast('Please select at least one file to upload.', 'warning');
+            return;
+        }
+
+        const pos = window.stateManager.get('purchaseOrders');
+        const po = pos[this.currentDetailsIndex];
+        if (!po) return;
+
+        const prNumber = po['PR NO'];
+        statusEl.innerText = "⏳ Uploading...";
+        
+        let uploadedCount = 0;
+        
+        // Process each file sequentially for simulation (can be parallelized)
+        const processFile = (index) => {
+            if (index >= files.length) {
+                statusEl.innerText = "✅ Upload complete";
+                fileInput.value = '';
+                // Reload state to get updated attachments
+                const updatedPos = window.stateManager.get('purchaseOrders');
+                this.renderDetailsAttachments(updatedPos[this.currentDetailsIndex]);
+                setTimeout(() => { statusEl.innerText = ""; }, 3000);
+                return;
+            }
+
+            window.stateManager.uploadProcurementPDF(prNumber, files[index], (url) => {
+                uploadedCount++;
+                statusEl.innerText = `⏳ Uploading... (${uploadedCount}/${files.length})`;
+                processFile(index + 1);
             });
         };
-        input.click();
+
+        processFile(0);
     },
 
     populateTable: function() {
@@ -383,15 +546,9 @@ window.procurementView = {
             const canEdit = user.userType === 'Owner' || (['System Admin', 'Admin'].includes(user.userType) && user.permProcurement === 'Edit');
 
 
-            let attachmentHtml = '-';
-            if (pdfUrl) {
-                attachmentHtml = `<a href="${pdfUrl}" target="_blank" class="btn btn-primary btn-sm" style="text-decoration:none;">🔗 View PDF</a>`;
-                if (canEdit) {
-                    attachmentHtml += `<div style="margin-top:4px;"><button class="btn btn-secondary btn-sm" style="font-size:10px; padding:2px 4px;" onclick="procurementView.uploadPDF('${prNumber}')">🔄 Update</button></div>`;
-                }
-            } else if (canEdit) {
-                attachmentHtml = `<button id="upload-btn-${prNumber}" class="btn btn-secondary btn-sm" onclick="procurementView.uploadPDF('${prNumber}')">📄 Upload</button>`;
-            }
+            const attachmentsCount = (po.attachments && po.attachments.length) ? po.attachments.length : (pdfUrl ? 1 : 0);
+            
+            let attachmentHtml = `<button class="btn btn-primary btn-sm" onclick="procurementView.showDetails(${index})">📂 Details (${attachmentsCount})</button>`;
 
             let poNumHtml = poNumber;
             if (pdfUrl && poNumber !== '-') {
@@ -535,28 +692,113 @@ window.procurementView = {
                 return;
             }
 
+            this.pendingDeleteIndex = index;
+            document.getElementById('proc-delete-reason').value = '';
+            document.getElementById('proc-delete-modal').classList.add('active');
+            
+        } catch (err) {
+            console.error('Error initiating delete:', err);
+            window.appEngine.showToast('Failed to initiate delete.', 'danger');
+        }
+    },
+
+    confirmDeleteRecord: function() {
+        try {
+            const pos = window.stateManager.get('purchaseOrders');
+            const deletedPos = window.stateManager.get('deletedPurchaseOrders');
+            const index = this.pendingDeleteIndex;
+
+            if (index === undefined || index < 0 || index >= pos.length) {
+                return;
+            }
+
             const po = pos[index];
-            if (!po) return;
+            const reason = document.getElementById('proc-delete-reason').value.trim();
 
-            if (!confirm(`Are you sure you want to delete the PR Record for "${po['PR NO'] || 'Unknown'}"? This will delete all associated data.`)) return;
+            if (!reason) {
+                window.appEngine.showToast('A reason is required to delete.', 'warning');
+                return;
+            }
 
-            // Log audit before state change to ensure we have the data
-            window.stateManager.logAudit('PROCUREMENT_DELETE', `Deleted PR Record: ${po['PR NO'] || 'Unknown'}`, window.appEngine.currentUser);
+            const user = window.appEngine.currentUser;
+            const deletedBy = user ? (user.name || user.username || user.phone) : 'System';
 
+            // Add deletion metadata
+            po.deleteReason = reason;
+            po.deletedBy = deletedBy;
+            po.deletedDate = new Date().toISOString();
+
+            // Log audit before state change
+            window.stateManager.logAudit('PROCUREMENT_DELETE', `Deleted PR Record: ${po['PR NO'] || 'Unknown'}. Reason: ${reason}`, user);
+
+            // Move to deleted list
+            deletedPos.unshift(po);
+            window.stateManager.set('deletedPurchaseOrders', deletedPos);
+
+            // Remove from active list
             pos.splice(index, 1);
             window.stateManager.set('purchaseOrders', pos);
             
+            document.getElementById('proc-delete-modal').classList.remove('active');
+            this.pendingDeleteIndex = undefined;
+
             window.appEngine.showToast('Record deleted successfully.', 'warning');
             
-            // Re-render happens automatically via state-changed event
-            // Only update analytics if they are currently visible
             const analyticsSection = document.getElementById('proc-analytics-section');
             if (analyticsSection && analyticsSection.style.display !== 'none') {
                 this.updateAnalytics();
+            }
+            if (document.getElementById('proc-deleted-section').style.display !== 'none') {
+                this.populateDeletedTable();
             }
         } catch (err) {
             console.error('Error deleting procurement record:', err);
             window.appEngine.showToast('Failed to delete record.', 'danger');
         }
+    },
+
+    toggleDeletedRecords: function() {
+        const deletedSec = document.getElementById('proc-deleted-section');
+        const mainSec = document.getElementById('proc-main-section');
+        const analyticsSec = document.getElementById('proc-analytics-section');
+        
+        if (deletedSec.style.display === 'none') {
+            deletedSec.style.display = 'block';
+            mainSec.style.display = 'none';
+            analyticsSec.style.display = 'none';
+            this.populateDeletedTable();
+        } else {
+            deletedSec.style.display = 'none';
+            mainSec.style.display = 'block';
+        }
+    },
+
+    populateDeletedTable: function() {
+        const deletedPos = window.stateManager.get('deletedPurchaseOrders');
+        const tbody = document.getElementById('po-deleted-tbody');
+        if (!tbody) return;
+
+        if (!deletedPos || deletedPos.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:32px; color:var(--text-muted);">No deleted records found.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = deletedPos.map(po => {
+            const prNumber    = po['PR NO'] || '-';
+            const description = po['DESCRIPTION'] || '-';
+            const deletedBy   = po.deletedBy || 'Unknown';
+            const reason      = po.deleteReason || 'No reason provided';
+            const deletedDate = po.deletedDate ? new Date(po.deletedDate).toLocaleString() : '-';
+            const issuedBy    = po['PR ISSUED BY'] || '-';
+
+            return `<tr>
+                <td><strong>${prNumber}</strong></td>
+                <td>${description}</td>
+                <td><span style="font-weight:600; color:var(--text-main);">${deletedBy}</span></td>
+                <td style="color:var(--danger);">${reason}</td>
+                <td style="font-size:12px; color:var(--text-muted)">${deletedDate}</td>
+                <td style="font-size:12px; color:var(--text-muted)">${issuedBy}</td>
+            </tr>`;
+        }).join('');
     }
 };

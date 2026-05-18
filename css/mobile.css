@@ -88,14 +88,18 @@
     }
 
     .sidebar .mobile-logout-btn {
-        display: block;
-        padding: 16px;
-        margin: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 12px 20px;
+        margin: 12px 0 0 0;
+        width: 100%;
         background: var(--danger);
         color: white;
-        border-radius: var(--radius-md);
+        border-radius: var(--radius-pill);
         font-weight: 700;
-        text-align: center;
+        font-size: 14px;
         border: none;
         cursor: pointer;
     }
@@ -111,12 +115,10 @@
 
     /* Topbar: compact for mobile */
     .topbar {
-        padding: 8px 0 !important;
+        padding: 0 0 16px 0 !important;
         margin-bottom: 20px !important;
-        position: sticky;
-        top: 0;
-        z-index: 500;
-        background: var(--bg);
+        position: relative !important;
+        z-index: 10;
     }
 
     .topbar h1 {
@@ -129,22 +131,23 @@
     }
 
     .topbar-user {
-        padding: 5px 10px 5px 6px !important;
-        gap: 8px !important;
+        padding: 4px !important;
+        gap: 0 !important;
+        border-radius: 50% !important;
+        width: 38px;
+        height: 38px;
+        justify-content: center;
     }
 
     .topbar-username {
-        font-size: 12px;
-        max-width: 80px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+        display: none !important;
     }
 
     .topbar-avatar {
-        width: 28px !important;
-        height: 28px !important;
+        width: 30px !important;
+        height: 30px !important;
         font-size: 12px !important;
+        letter-spacing: 0.5px;
     }
 
     /* Cards */

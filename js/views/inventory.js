@@ -335,20 +335,30 @@ window.inventoryView = {
                 }
                 inv.quantity -= qty;
                 
+                const currentUser = window.appEngine && window.appEngine.currentUser;
+                const isOwner = currentUser && currentUser.userType === 'Owner';
+                const status = isOwner ? 'CLAIMED' : 'PENDING_OWNER_APPROVAL';
+                
                 requests.push({
                     id: makeId(),
                     timestamp: new Date().toISOString(),
                     username: 'system',
                     userName: opName,
                     itemId, qty, purpose,
-                    status: 'CLAIMED',
+                    status: status,
+                    actionedBy: opName,
                     claimedAt: new Date().toISOString()
                 });
                 
                 window.stateManager.set('inventory', items);
                 window.stateManager.set('requests', requests);
                 window.stateManager.logAudit('ITEM_TAKEN', `Instantly took ${qty} of ${inv.name} for ${purpose}`, {name: opName}, { itemId: itemId, qty: qty });
-                window.appEngine.showToast(`${qty}x ${inv.name} deducted from inventory.`, 'success');
+                
+                if (status === 'PENDING_OWNER_APPROVAL') {
+                    window.appEngine.showToast(`${qty}x ${inv.name} deducted from inventory. Pending Owner financial approval.`, 'success');
+                } else {
+                    window.appEngine.showToast(`${qty}x ${inv.name} deducted from inventory.`, 'success');
+                }
             } else {
                 requests.push({
                     id: makeId(),

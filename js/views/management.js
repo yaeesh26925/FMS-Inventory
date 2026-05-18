@@ -106,53 +106,59 @@ window.managementView = {
             </div>
 
 
-            <!-- Add Item Modal -->
             <div id="mgt-modal" class="modal-overlay">
-                <div class="modal-content">
+                <div class="modal-content" style="max-width: 650px;">
                     <div class="modal-header">
                         <h2>Add New Inventory Item</h2>
                         <span class="modal-close" onclick="managementView.closeAddModal()">&times;</span>
                     </div>
                     
-                    <div class="input-group">
-                        <label>Custom Inventory ID</label>
-                        <input type="text" id="mgt-add-id" placeholder="e.g. INV-001" style="padding:12px; border-radius:var(--radius-md); border:1px solid var(--glass-border); background:hsla(0, 0%, 100%, 0.05); color:var(--text-main); width:100%">
-                        <small style="color:var(--text-muted); font-size:11px;">Leave blank to auto-generate.</small>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0 16px;">
+                        <div class="input-group">
+                            <label>Custom Inventory ID</label>
+                            <input type="text" id="mgt-add-id" placeholder="e.g. INV-001" style="padding:12px; border-radius:var(--radius-md); border:1px solid var(--glass-border); background:hsla(0, 0%, 100%, 0.05); color:var(--text-main); width:100%">
+                            <small style="color:var(--text-muted); font-size:11px;">Leave blank to auto-generate.</small>
+                        </div>
+
+                        <div class="input-group">
+                            <label id="mgt-add-operator-label">Admin Name logging this item</label>
+                            <input type="text" id="mgt-add-operator" placeholder="Your Name" style="padding:12px; border-radius:var(--radius-md); border:1px solid var(--glass-border); background:hsla(0, 0%, 100%, 0.05); color:var(--text-main); width:100%">
+                        </div>
+
+                        <div class="input-group">
+                            <label>Item Name</label>
+                            <input type="text" id="mgt-add-name" placeholder="e.g. Hydraulic Filter">
+                        </div>
+                        
+                        <div class="input-group">
+                            <label>Item Part Number (Code)</label>
+                            <input type="text" id="mgt-add-code" placeholder="e.g. HF-2025">
+                        </div>
                     </div>
 
-                    <div class="input-group">
-                        <label id="mgt-add-operator-label">Admin Name logging this item</label>
-                        <input type="text" id="mgt-add-operator" placeholder="Your Name" style="padding:12px; border-radius:var(--radius-md); border:1px solid var(--glass-border); background:hsla(0, 0%, 100%, 0.05); color:var(--text-main); width:100%">
-                    </div>
-
-
-                    <div class="input-group">
-                        <label>Item Name</label>
-                        <input type="text" id="mgt-add-name" placeholder="e.g. Hydraulic Filter">
-                    </div>
                     <div class="input-group">
                         <label>Description</label>
                         <input type="text" id="mgt-add-desc" placeholder="e.g. Engine compatible component">
                     </div>
-                    <div class="input-group">
-                        <label>Item Part Number (Code)</label>
-                        <input type="text" id="mgt-add-code" placeholder="e.g. HF-2025">
-                    </div>
-                    <div class="input-group">
-                        <label>GNS Code <span style="font-size:11px; color:var(--text-muted); font-weight:normal;">(Admin-only)</span></label>
-                        <input type="text" id="mgt-add-gns" placeholder="e.g. GNS-2025-001" style="padding:12px; border-radius:var(--radius-md); border:1px solid var(--glass-border); background:hsla(0, 0%, 100%, 0.05); color:var(--text-main); width:100%">
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0 16px;">
+                        <div class="input-group">
+                            <label>GNS Code <span style="font-size:11px; color:var(--text-muted); font-weight:normal;">(Admin-only)</span></label>
+                            <input type="text" id="mgt-add-gns" placeholder="e.g. GNS-2025-001" style="padding:12px; border-radius:var(--radius-md); border:1px solid var(--glass-border); background:hsla(0, 0%, 100%, 0.05); color:var(--text-main); width:100%">
+                        </div>
+
+                        <div class="input-group">
+                            <label>Location</label>
+                            <input type="text" id="mgt-add-loc" placeholder="e.g. Warehouse A">
+                        </div>
                     </div>
 
-                    <div class="input-group">
-                        <label>Location</label>
-                        <input type="text" id="mgt-add-loc" placeholder="e.g. Warehouse A">
-                    </div>
-                    <div style="display:flex; gap:16px;">
-                        <div class="input-group" style="flex:1">
+                    <div style="display:flex; gap:16px; flex-wrap: wrap;">
+                        <div class="input-group" style="flex:1; min-width: 140px;">
                             <label>Starting Quantity</label>
                             <input type="number" id="mgt-add-qty" min="0" value="0">
                         </div>
-                        <div class="input-group" style="flex:1">
+                        <div class="input-group" style="flex:1; min-width: 140px;">
                             <label>Unit of Measure</label>
                             <select id="mgt-add-unit">
                                 <option value="pcs">pcs (Pieces)</option>
@@ -165,17 +171,18 @@ window.managementView = {
                                 <option value="pair">pair (Pair)</option>
                             </select>
                         </div>
-                        <div class="input-group" style="flex:1">
+                        <div class="input-group" style="flex:1; min-width: 140px;">
                             <label>Unit Price ($)</label>
                             <input type="number" id="mgt-add-price" min="0" step="0.01" value="0.00">
                         </div>
                     </div>
+                    
                     <div class="input-group">
                         <label>⚠️ Low Stock Alert Threshold</label>
                         <input type="number" id="mgt-add-alert" min="0" value="10" placeholder="e.g. 10 — alert when qty falls below this">
                         <small style="color:var(--text-muted); font-size:11px;">Item will be marked as Low Stock when quantity drops below this number.</small>
                     </div>
-                    <button class="btn btn-primary mt-3" onclick="managementView.addItem()" style="font-size:16px; padding:12px">Save Part to Inventory</button>
+                    <button class="btn btn-primary mt-3" onclick="managementView.addItem()" style="font-size:16px; padding:12px; width:100%; justify-content:center;">Save Part to Inventory</button>
                 </div>
             </div>
         `;

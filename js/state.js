@@ -19,7 +19,8 @@ class StateManager {
             purposes: [],
             audit: [],
             tasks: [],
-            Users: []
+            Users: [],
+            deletedPurchaseOrders: []
         };
     }
 
@@ -44,7 +45,8 @@ class StateManager {
             purposes: ['Preventive Maintenance', 'Safety Ensure', 'Breakdown Repair'],
             audit: [],
             tasks: [],
-            Users: []
+            Users: [],
+            deletedPurchaseOrders: []
         };
     }
 
@@ -284,7 +286,16 @@ class StateManager {
                 const fakeUrl = 'https://example.com/fake-pdf-url.pdf';
                 const pos = this.get('purchaseOrders');
                 const po = pos.find(p => p['PR NO'] === prNumber);
-                if (po) po.pdfUrl = fakeUrl;
+                if (po) {
+                    po.pdfUrl = fakeUrl;
+                    if (!po.attachments) po.attachments = [];
+                    po.attachments.push({
+                        name: file.name || 'document.pdf',
+                        url: fakeUrl,
+                        uploadedAt: new Date().toISOString(),
+                        uploadedBy: (window.appEngine && window.appEngine.currentUser) ? (window.appEngine.currentUser.name || window.appEngine.currentUser.username) : 'System'
+                    });
+                }
                 this.set('purchaseOrders', pos);
                 if (callback) callback(fakeUrl);
 

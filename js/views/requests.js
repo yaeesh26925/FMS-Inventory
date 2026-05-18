@@ -101,7 +101,13 @@ window.requestsView = {
             else if(req.status === 'APPROVED') badge = '<span class="status status-green">Approved</span>';
             else if(req.status === 'REJECTED') badge = '<span class="status status-red">Rejected</span>';
             else if(req.status === 'CLAIMED') badge = '<span class="status" style="background:var(--primary); color:white; border:none; box-shadow:var(--shadow-glow)">Claimed (Done)</span>';
-            else if(req.status === 'PENDING_OWNER_APPROVAL') badge = '<span class="status" style="background:var(--secondary); color:white; border:none;">Admin Approved (Pending Owner Financials)</span>';
+            else if(req.status === 'PENDING_OWNER_APPROVAL') {
+                if (currentUser && (currentUser.name === req.actionedBy || currentUser.phone === req.actionedBy || currentUser.userType === 'Owner')) {
+                    badge = '<span class="status" style="background:var(--secondary); color:white; border:none;">Admin Approved (Pending Owner Financials)</span>';
+                } else {
+                    badge = '<span class="status status-green">Approved</span>';
+                }
+            }
 
 
             let actions = '<span style="color:var(--text-muted)">—</span>';
